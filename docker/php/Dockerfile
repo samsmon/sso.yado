@@ -33,6 +33,10 @@ RUN apk add --no-cache \
 # pdo_mysql dipertahankan HANYA untuk `php artisan db:migrate-to-pgsql` (baca data lama
 # dari MySQL sekali saat pindah ke Postgres) - koneksi aktif aplikasi selalu pgsql.
 
+# Mitigasi CVE-2026-115560 (RCE lewat session upload progress, belum ada patch resmi PHP).
+# Cabut setelah PHP merilis perbaikan.
+RUN echo 'session.upload_progress.enabled=0' > /usr/local/etc/php/conf.d/zz-upload-progress.ini
+
 WORKDIR /var/www/html
 
 COPY . .
