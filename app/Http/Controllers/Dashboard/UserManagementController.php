@@ -31,7 +31,7 @@ class UserManagementController extends Controller
     {
         $this->service->toggleActive($user, $request->user());
 
-        return back()->with('success', 'Status user diperbarui.');
+        return back()->with('success', 'User status updated.');
     }
 
     public function assignRole(Request $request, User $user): RedirectResponse
@@ -42,7 +42,7 @@ class UserManagementController extends Controller
 
         $this->service->assignRole($user, $validated['role_id'], $request->user());
 
-        return back()->with('success', 'Role user diperbarui.');
+        return back()->with('success', 'User role updated.');
     }
 
     public function invite(): InertiaResponse
@@ -60,7 +60,7 @@ class UserManagementController extends Controller
         $this->inviteAction->execute($request->user(), $validated['email'], $validated['role_id']);
 
         return redirect()->route('dashboard.users.index')
-            ->with('success', "Undangan dikirim ke {$validated['email']}.");
+            ->with('success', "Invitation sent to {$validated['email']}.");
     }
 
     public function changePassword(Request $request, User $user): RedirectResponse
@@ -71,6 +71,6 @@ class UserManagementController extends Controller
 
         $this->service->changeUserPassword($user, $validated['new_password']);
 
-        return back()->with('success', "Password untuk user {$user->name} berhasil diubah.");
+        return back()->with('success', "Password for user {$user->name} changed successfully.");
     }
 }

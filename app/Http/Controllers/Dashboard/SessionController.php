@@ -31,15 +31,15 @@ class SessionController extends Controller
 
         if ($type === 'web') {
             if ($id === session()->getId()) {
-                return back()->with('error', 'Tidak bisa mencabut session aktif sendiri.');
+                return back()->with('error', 'You cannot revoke your own active session.');
             }
             $this->service->revokeWebSession($id);
         } else {
             $this->service->revokeOAuthSession($id);
         }
 
-        $this->auditLog->record('dashboard.session_revoked', "Session ({$type}) dicabut oleh superadmin");
+        $this->auditLog->record('dashboard.session_revoked', "Session ({$type}) revoked by superadmin");
 
-        return back()->with('success', 'Session berhasil dicabut.');
+        return back()->with('success', 'Session revoked successfully.');
     }
 }

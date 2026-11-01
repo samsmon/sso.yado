@@ -13,7 +13,7 @@ class LoginService
     public function __construct(private readonly AuditLogService $auditLog) {}
 
     /**
-     * @return bool true kalau butuh lanjut ke two-factor challenge (belum full login)
+     * @return bool true if it needs to continue to the two-factor challenge (not fully logged in yet)
      *
      * @throws ValidationException
      */
@@ -25,7 +25,7 @@ class LoginService
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
         if (! Auth::attempt([$field => $login, 'password' => $credentials['password']], $remember)) {
-            $this->auditLog->record('auth.login_failed', "Login gagal untuk \"{$login}\"");
+            $this->auditLog->record('auth.login_failed', "Login failed for \"{$login}\"");
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -37,10 +37,10 @@ class LoginService
 
         if (! $user->is_active) {
             Auth::logout();
-            $this->auditLog->record('auth.login_failed', 'Login ditolak - akun tidak aktif', $user);
+            $this->auditLog->record('auth.login_failed', 'Login denied - account inactive', $user);
 
             throw ValidationException::withMessages([
-                'email' => ['Akun Anda tidak aktif.'],
+                'email' => ['Your account is inactive.'],
             ]);
         }
 
@@ -52,7 +52,7 @@ class LoginService
             return true;
         }
 
-        $this->auditLog->record('auth.login', 'Login berhasil', $user);
+        $this->auditLog->record('auth.login', 'Login successful', $user);
 
         return false;
     }

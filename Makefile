@@ -1,53 +1,53 @@
 .PHONY: help sync deploy update ssh remote-deploy remote-update docker-up docker-down docker-build docker-fresh docker-shell docker-logs docker-prod-deploy docker-prod-update docker-prod-down docker-prod-logs docker-prod-shell docker-standalone-deploy docker-standalone-update docker-standalone-down docker-standalone-logs docker-standalone-shell
 
-# Load SSH config dari .env jika ada
+# Load SSH config from .env if present
 -include .env
 SERVER_USER ?= ubuntu
 SERVER_PATH ?= /var/www/sso
 
-# docker/compose.prod.yml dan docker/compose.standalone.yml hidup di dalam docker/,
-# tapi semua path relatif di dalamnya (env_file, volumes, build context) tetap ditulis
-# seolah-olah relatif ke root repo - --project-directory . yang bikin itu valid tanpa
-# perlu ubah isi file compose sama sekali.
+# docker/compose.prod.yml and docker/compose.standalone.yml live inside docker/,
+# but all relative paths inside them (env_file, volumes, build context) are still written
+# as if relative to the repo root - --project-directory . is what makes that valid without
+# having to change the compose files at all.
 PROD_COMPOSE := docker compose -f docker/compose.prod.yml --project-directory .
 STANDALONE_COMPOSE := docker compose -f docker/compose.standalone.yml --project-directory .
 
 help:
 	@echo "Available commands:"
-	@echo "  make sync           Sync stack dari docs/SRS.md ke .claude/CLAUDE.md"
+	@echo "  make sync           Sync the stack from docs/SRS.md to .claude/CLAUDE.md"
 	@echo ""
-	@echo "  -- Di server (jalankan setelah SSH) --"
-	@echo "  make deploy         First-time deploy wizard di server"
-	@echo "  make update         Pull latest + rebuild di server"
+	@echo "  -- On the server (run after SSH) --"
+	@echo "  make deploy         First-time deploy wizard on the server"
+	@echo "  make update         Pull latest + rebuild on the server"
 	@echo ""
-	@echo "  -- Dari lokal ke server (butuh SERVER_HOST di .env) --"
-	@echo "  make ssh            SSH ke server"
-	@echo "  make remote-deploy  First-time deploy via SSH dari lokal"
-	@echo "  make remote-update  Update server via SSH dari lokal"
+	@echo "  -- From local to the server (needs SERVER_HOST in .env) --"
+	@echo "  make ssh            SSH into the server"
+	@echo "  make remote-deploy  First-time deploy via SSH from local"
+	@echo "  make remote-update  Update the server via SSH from local"
 	@echo ""
-	@echo "  -- Docker (lokal) --"
+	@echo "  -- Docker (local) --"
 	@echo "  make docker-fresh   First-time setup: build + up + migrate + seed"
-	@echo "  make docker-up      Start container (build jika perlu)"
-	@echo "  make docker-down    Stop container"
-	@echo "  make docker-build   Rebuild image (setelah ubah composer.json/package.json)"
-	@echo "  make docker-shell   Masuk shell container app"
-	@echo "  make docker-logs    Tail log semua container"
+	@echo "  make docker-up      Start containers (build if needed)"
+	@echo "  make docker-down    Stop containers"
+	@echo "  make docker-build   Rebuild the image (after changing composer.json/package.json)"
+	@echo "  make docker-shell   Open a shell in the app container"
+	@echo "  make docker-logs    Tail logs of all containers"
 	@echo ""
-	@echo "  -- Docker Production (homelab/Proxmox, butuh network 'proxy' Traefik) --"
+	@echo "  -- Docker Production (homelab/Proxmox, needs the Traefik 'proxy' network) --"
 	@echo "  make docker-prod-deploy  First-time deploy: build + up + migrate + seed"
-	@echo "  make docker-prod-update  Update: pull + rebuild + migrate (data aman)"
-	@echo "  make docker-prod-down    Stop container production"
-	@echo "  make docker-prod-logs    Tail log container production"
-	@echo "  make docker-prod-shell   Masuk shell container app production"
+	@echo "  make docker-prod-update  Update: pull + rebuild + migrate (data is safe)"
+	@echo "  make docker-prod-down    Stop production containers"
+	@echo "  make docker-prod-logs    Tail production container logs"
+	@echo "  make docker-prod-shell   Open a shell in the production app container"
 	@echo ""
-	@echo "  -- Docker Standalone (universal - testing lokal ATAU deploy publik, tanpa Traefik) --"
+	@echo "  -- Docker Standalone (universal - local testing OR public deploy, no Traefik) --"
 	@echo "  make docker-standalone-deploy  First-time deploy: build + up + migrate + seed"
-	@echo "  make docker-standalone-update  Update: pull + rebuild + migrate (data aman)"
-	@echo "  make docker-standalone-down    Stop container"
-	@echo "  make docker-standalone-logs    Tail log semua container (termasuk Caddy)"
-	@echo "  make docker-standalone-shell   Masuk shell container app"
+	@echo "  make docker-standalone-update  Update: pull + rebuild + migrate (data is safe)"
+	@echo "  make docker-standalone-down    Stop containers"
+	@echo "  make docker-standalone-logs    Tail logs of all containers (including Caddy)"
+	@echo "  make docker-standalone-shell   Open a shell in the app container"
 	@echo ""
-	@echo "  -- Deploy Docker ke Proxmox VM/LXC baru (sekali jalan, dari dalam guest) --"
+	@echo "  -- Deploy Docker to a new Proxmox VM/LXC (one shot, from inside the guest) --"
 	@echo "  bash scripts/deploy-docker-proxmox.sh   Install Docker + first-time standalone deploy"
 
 sync:
@@ -60,15 +60,15 @@ update:
 	bash scripts/deploy.sh
 
 ssh:
-	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST belum diset di .env"; exit 1; fi
+	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST is not set in .env"; exit 1; fi
 	ssh -i $(SSH_KEY_PATH) $(SERVER_USER)@$(SERVER_HOST)
 
 remote-deploy:
-	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST belum diset di .env"; exit 1; fi
+	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST is not set in .env"; exit 1; fi
 	ssh -i $(SSH_KEY_PATH) $(SERVER_USER)@$(SERVER_HOST) "cd $(SERVER_PATH) && sudo bash scripts/deploy.sh"
 
 remote-update:
-	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST belum diset di .env"; exit 1; fi
+	@if [ -z "$(SERVER_HOST)" ]; then echo "Error: SERVER_HOST is not set in .env"; exit 1; fi
 	ssh -i $(SSH_KEY_PATH) $(SERVER_USER)@$(SERVER_HOST) "cd $(SERVER_PATH) && bash scripts/deploy.sh"
 
 docker-fresh:
@@ -96,8 +96,8 @@ docker-logs:
 	docker compose logs -f
 
 docker-prod-deploy:
-	@if [ ! -f .env ]; then echo "Error: .env belum ada. Copy dari .env.example dan isi dulu."; exit 1; fi
-	@if ! docker network inspect proxy >/dev/null 2>&1; then echo "Error: network 'proxy' (Traefik) belum ada. Buat dulu: docker network create proxy"; exit 1; fi
+	@if [ ! -f .env ]; then echo "Error: .env does not exist. Copy it from .env.example and fill it in first."; exit 1; fi
+	@if ! docker network inspect proxy >/dev/null 2>&1; then echo "Error: the 'proxy' network (Traefik) does not exist. Create it first: docker network create proxy"; exit 1; fi
 	$(PROD_COMPOSE) up -d --build
 	$(PROD_COMPOSE) exec app php artisan key:generate
 	$(PROD_COMPOSE) exec app php artisan migrate --force
@@ -106,7 +106,7 @@ docker-prod-deploy:
 	$(PROD_COMPOSE) exec app php artisan config:cache
 	$(PROD_COMPOSE) exec app php artisan route:cache
 	$(PROD_COMPOSE) exec app php artisan view:cache
-	@echo "Selesai. Cek routing Traefik untuk domain yang dikonfigurasi di docker/compose.prod.yml."
+	@echo "Done. Check the Traefik routing for the domain configured in docker/compose.prod.yml."
 
 docker-prod-update:
 	git pull origin main
@@ -126,7 +126,7 @@ docker-prod-shell:
 	$(PROD_COMPOSE) exec app sh
 
 docker-standalone-deploy:
-	@if [ ! -f .env ]; then cp .env.example .env; echo "[!] .env dibuat dari .env.example. Edit CADDY_SITE_ADDRESS, DB_*, ADMIN_EMAIL/PASSWORD lalu jalankan ulang."; exit 0; fi
+	@if [ ! -f .env ]; then cp .env.example .env; echo "[!] .env created from .env.example. Edit CADDY_SITE_ADDRESS, DB_*, ADMIN_EMAIL/PASSWORD, then run again."; exit 0; fi
 	$(STANDALONE_COMPOSE) up -d --build
 	$(STANDALONE_COMPOSE) exec app php artisan key:generate
 	$(STANDALONE_COMPOSE) exec app php artisan migrate --force

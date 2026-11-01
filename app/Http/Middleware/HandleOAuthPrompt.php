@@ -10,10 +10,10 @@ use Symfony\Component\HttpFoundation\Response;
 class HandleOAuthPrompt
 {
     /**
-     * Menangani parameter prompt=login dari client OAuth (mis. fitur "Tambah Akun" di Malas).
-     * Jika user sedang terautentikasi dan prompt=login dikirim ke /oauth/authorize,
-     * logout user aktif dan redirect kembali ke URL authorize tanpa prompt=login
-     * agar middleware auth Passport mengirim user ke halaman login untuk memasukkan kredensial akun baru.
+     * Handles the prompt=login parameter from OAuth clients (e.g. the "Add Account" feature in Malas).
+     * If the user is authenticated and prompt=login is sent to /oauth/authorize,
+     * log out the active user and redirect back to the authorize URL without prompt=login
+     * so the Passport auth middleware sends the user to the login page to enter the new account's credentials.
      */
     public function handle(Request $request, Closure $next): Response
     {

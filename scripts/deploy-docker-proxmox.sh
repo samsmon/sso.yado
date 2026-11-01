@@ -1,87 +1,87 @@
 #!/usr/bin/env bash
-# Deploy SSO Engine via Docker (docker/compose.standalone.yml) ke VM/LXC guest di Proxmox.
+# Deploy SSO Engine via Docker (docker/compose.standalone.yml) to a VM/LXC guest on Proxmox.
 #
-# PENTING: jalankan skrip ini DI DALAM VM atau LXC container (guest) yang hidup di
-# Proxmox - BUKAN langsung di host Proxmox itu sendiri. Menjalankan Docker di host
-# Proxmox tidak direkomendasikan (bentrok dengan resource management Proxmox, dan
-# bikin host lebih rentan). Guest OS yang diasumsikan: Debian/Ubuntu.
+# IMPORTANT: run this script INSIDE a VM or LXC container (guest) that lives on
+# Proxmox - NOT directly on the Proxmox host itself. Running Docker on the
+# Proxmox host is not recommended (it conflicts with Proxmox resource management, and
+# makes the host more vulnerable). Assumed guest OS: Debian/Ubuntu.
 #
-# Script ini otomatis deteksi first-deploy vs update - aman dipakai berulang kali.
+# This script automatically detects first-deploy vs update - safe to run repeatedly.
 #
-# Pemakaian (dari dalam folder hasil git clone):
+# Usage (from inside the git clone folder):
 #   bash scripts/deploy-docker-proxmox.sh
 
 set -euo pipefail
 
 echo "=== SSO Engine - Deploy Docker (Proxmox VM/LXC) ==="
 
-# Peringatan kalau ternyata dijalankan di host Proxmox asli, bukan guest-nya
+# Warn if it is actually run on the real Proxmox host, not the guest
 if command -v pveversion >/dev/null 2>&1; then
-    echo "[!] Terdeteksi jalan di HOST Proxmox (ada 'pveversion'), bukan di VM/LXC guest."
-    echo "    Sangat disarankan jalankan Docker di dalam VM/LXC, bukan langsung di host Proxmox."
-    read -p "    Tetap lanjutkan di host ini? (y/N) " -n 1 -r
+    echo "[!] Detected running on the Proxmox HOST ('pveversion' is present), not in a VM/LXC guest."
+    echo "    It is strongly recommended to run Docker inside a VM/LXC, not directly on the Proxmox host."
+    read -p "    Continue on this host anyway? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
 fi
 
-# Install Docker kalau belum ada
+# Install Docker if it is missing
 if ! command -v docker >/dev/null 2>&1; then
-    echo "Docker belum terinstall - install sekarang via get.docker.com (Debian/Ubuntu)..."
+    echo "Docker is not installed - installing now via get.docker.com (Debian/Ubuntu)..."
     curl -fsSL https://get.docker.com | sh
     sudo usermod -aG docker "$USER"
     echo ""
-    echo "[!] Docker baru diinstall. Logout lalu login ulang (atau jalankan: newgrp docker)"
-    echo "    supaya user ini bisa pakai 'docker' tanpa sudo, lalu jalankan skrip ini lagi."
+    echo "[!] Docker was just installed. Log out and back in (or run: newgrp docker)"
+    echo "    so this user can use 'docker' without sudo, then run this script again."
     exit 0
 fi
 
-# Setup .env jika belum ada
+# Set up .env if it does not exist
 if [ ! -f .env ]; then
     cp .env.example .env
-    echo "[!] .env dibuat dari .env.example. Wajib diisi sebelum lanjut, minimal:"
-    echo "    - CADDY_SITE_ADDRESS   domain publik tanpa skema (mis. sso.namadomain.com),"
-    echo "                           atau biarkan http://localhost untuk sekadar testing"
-    echo "    - DB_USERNAME, DB_PASSWORD  (WAJIB diisi, tidak boleh kosong untuk deploy"
-    echo "                           Docker - dipakai langsung sebagai superuser Postgres)"
+    echo "[!] .env created from .env.example. Fill it in before continuing, at least:"
+    echo "    - CADDY_SITE_ADDRESS   public domain without a scheme (e.g. sso.yourdomain.com),"
+    echo "                           or leave http://localhost for plain testing"
+    echo "    - DB_USERNAME, DB_PASSWORD  (REQUIRED, must not be empty for a"
+    echo "                           Docker deploy - used directly as the Postgres superuser)"
     echo "    - ADMIN_EMAIL, ADMIN_PASSWORD"
     echo ""
-    echo "Jalankan lagi skrip ini setelah .env diisi."
+    echo "Run this script again after .env is filled in."
     exit 0
 fi
 
 if ! grep -qE "^DB_PASSWORD=.+" .env; then
-    echo "[!] DB_PASSWORD masih kosong di .env."
-    echo "    Deploy Docker (standalone/production) tidak mengizinkan password kosong -"
-    echo "    beda dari setup lokal biasa yang boleh pakai user tanpa password."
+    echo "[!] DB_PASSWORD is still empty in .env."
+    echo "    A Docker deploy (standalone/production) does not allow an empty password -"
+    echo "    unlike a regular local setup, which may use a user without a password."
     exit 1
 fi
 
-# Pull latest (aman diabaikan kalau belum ada remote/branch, mis. first clone manual)
+# Pull latest (safe to ignore if there is no remote/branch yet, e.g. a manual first clone)
 git pull origin main 2>/dev/null || true
 
 COMPOSE="docker compose -f docker/compose.standalone.yml --project-directory ."
 
-# Deteksi first-deploy vs update: kalau container app belum pernah dibuat, ini first-deploy
+# Detect first-deploy vs update: if the app container has never been created, this is a first deploy
 IS_FIRST_DEPLOY=0
 if ! $COMPOSE ps --status running --services 2>/dev/null | grep -q "^app$"; then
     IS_FIRST_DEPLOY=1
 fi
 
-echo "Build image + start container..."
+echo "Build image + start containers..."
 $COMPOSE up -d --build
 
 if [ "$IS_FIRST_DEPLOY" = "1" ]; then
     echo ""
-    echo "Deploy pertama terdeteksi - generate key, migrate, Passport keys, seed..."
+    echo "First deploy detected - generate key, migrate, Passport keys, seed..."
     $COMPOSE exec -T app php artisan key:generate
     $COMPOSE exec -T app php artisan migrate --force
     $COMPOSE exec -T app php artisan passport:keys --force
     $COMPOSE exec -T app php artisan db:seed --force
 else
     echo ""
-    echo "Update terdeteksi - migrate (bukan migrate:fresh, data aman)..."
+    echo "Update detected - migrate (not migrate:fresh, data is safe)..."
     $COMPOSE exec -T app php artisan migrate --force
 fi
 
@@ -90,7 +90,7 @@ $COMPOSE exec -T app php artisan route:cache
 $COMPOSE exec -T app php artisan view:cache
 
 echo ""
-echo "=== Deploy selesai ==="
-echo "Akses sesuai CADDY_SITE_ADDRESS di .env - kalau diisi domain publik, Caddy sudah"
-echo "otomatis provision HTTPS Let's Encrypt (pastikan DNS domain itu sudah mengarah ke"
-echo "IP VM/LXC ini dan port 80+443 terbuka ke internet)."
+echo "=== Deploy complete ==="
+echo "Access it via the CADDY_SITE_ADDRESS in .env - if a public domain is set, Caddy has"
+echo "automatically provisioned Let's Encrypt HTTPS (make sure the domain's DNS already points to"
+echo "this VM/LXC's IP and that ports 80+443 are open to the internet)."

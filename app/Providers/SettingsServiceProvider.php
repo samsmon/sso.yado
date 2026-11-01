@@ -10,10 +10,10 @@ class SettingsServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        // Ini jalan di SETIAP boot aplikasi, termasuk artisan command yang tidak
-        // butuh DB sama sekali (key:generate, package:discover saat composer install
-        // di dalam Docker build - belum ada koneksi DB sama sekali di titik itu).
-        // Kalau DB belum siap/belum ada, diamkan saja dan biarkan config fallback ke .env.
+        // This runs on EVERY application boot, including artisan commands that do not
+        // need a DB at all (key:generate, package:discover during composer install
+        // inside the Docker build - there is no DB connection at all at that point).
+        // If the DB is not ready/does not exist, stay silent and let the config fall back to .env.
         try {
             if (!Schema::hasTable('settings')) {
                 return;

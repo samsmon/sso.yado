@@ -48,9 +48,9 @@ class AccountController extends Controller
         );
 
         $this->revokeSessionAction->revokeAll($user);
-        $this->auditLog->record('account.password_changed', 'Password diperbarui', $user);
+        $this->auditLog->record('account.password_changed', 'Password updated', $user);
 
-        return back()->with('success', 'Password berhasil diperbarui. Semua session lain telah keluar.');
+        return back()->with('success', 'Password updated successfully. All other sessions have been signed out.');
     }
 
     public function updateAvatar(Request $request): RedirectResponse
@@ -63,7 +63,7 @@ class AccountController extends Controller
         $user = $request->user();
 
         $this->updateAvatarAction->execute($user, $validated['avatar']);
-        $this->auditLog->record('account.avatar_updated', 'Avatar diperbarui', $user);
+        $this->auditLog->record('account.avatar_updated', 'Avatar updated', $user);
 
         return back()->with('success', __('account.avatar_updated'));
     }
@@ -100,7 +100,7 @@ class AccountController extends Controller
         $this->revokeSessionAction->execute($user, $tokenId);
         $this->auditLog->record('account.session_revoked', 'OAuth session dicabut', $user);
 
-        return back()->with('success', 'Session berhasil dicabut.');
+        return back()->with('success', 'Session revoked successfully.');
     }
 
     public function revokeAllSessions(Request $request): RedirectResponse
@@ -109,9 +109,9 @@ class AccountController extends Controller
         $user = $request->user();
 
         $this->revokeSessionAction->revokeAll($user);
-        $this->auditLog->record('account.session_revoked', 'Semua OAuth session dicabut', $user);
+        $this->auditLog->record('account.session_revoked', 'All OAuth sessions revoked', $user);
 
-        return back()->with('success', 'Semua session berhasil dicabut.');
+        return back()->with('success', 'All sessions revoked successfully.');
     }
 
     public function revokeDevice(Request $request, string $sessionId): RedirectResponse
@@ -131,7 +131,7 @@ class AccountController extends Controller
         $user = $request->user();
 
         $this->revokeWebSessionAction->revokeAllExcept($user, $request->session()->getId());
-        $this->auditLog->record('account.device_revoked', 'Semua device lain di-logout', $user);
+        $this->auditLog->record('account.device_revoked', 'All other devices signed out', $user);
 
         return back()->with('success', __('sessions.all_other_devices_revoked'));
     }

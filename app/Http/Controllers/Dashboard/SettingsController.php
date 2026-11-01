@@ -41,7 +41,7 @@ class SettingsController extends Controller
 
         $this->settings->saveMail($validated);
         $this->settings->applyToRuntimeConfig();
-        $this->auditLog->record('settings.mail_updated', 'Konfigurasi email diperbarui');
+        $this->auditLog->record('settings.mail_updated', 'Email configuration updated');
 
         return back()->with('success', __('settings.mail_saved'));
     }
@@ -59,7 +59,7 @@ class SettingsController extends Controller
 
         $this->settings->saveAvatarStorage($validated);
         $this->settings->applyToRuntimeConfig();
-        $this->auditLog->record('settings.avatar_storage_updated', 'Konfigurasi penyimpanan avatar diperbarui');
+        $this->auditLog->record('settings.avatar_storage_updated', 'Avatar storage configuration updated');
 
         return back()->with('success', __('settings.avatar_storage_saved'));
     }
@@ -70,7 +70,7 @@ class SettingsController extends Controller
             'test_email' => ['required', 'email'],
         ]);
 
-        Mail::raw('Test email dari SSO Engine - konfigurasi mail kamu berhasil.', function ($message) use ($validated) {
+        Mail::raw('Test email from SSO Engine - your mail configuration works.', function ($message) use ($validated) {
             $message->to($validated['test_email'])->subject('SSO Engine - Test Email');
         });
 

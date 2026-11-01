@@ -40,10 +40,10 @@ Homestead.yaml
 /auth.json
 /public/fonts-manifest.dev.json
 
-# Logs (project-level) - anchored ke root, jangan sampai match folder "logs" lain di
-# tree (mis. resources/views/dashboard/logs/ sempat ke-ignore gara-gara pattern tanpa
-# leading slash ini, bikin view log viewer gak pernah ke-commit)
+# Logs (project-level) - anchored to the root, so it must not match other "logs" folders in
+# the tree (e.g. resources/views/dashboard/logs/ was once ignored because of a pattern without
+# leading slash, which made the log viewer view never get committed)
 /logs/
 
-# Internal workflow (tickets untuk dev session, bukan publik)
+# Internal workflow (tickets for dev sessions, not public)
 docs/tickets/

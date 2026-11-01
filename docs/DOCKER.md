@@ -1,20 +1,20 @@
 # Docker - SSO Engine
 
-Ada 3 cara jalanin SSO Engine via Docker, pilih sesuai kebutuhan:
+There are 3 ways to run SSO Engine via Docker, pick whichever fits your needs:
 
-| File | Kapan dipakai |
+| File | When to use |
 |---|---|
-| `docker-compose.yml` | Development lokal - hot-friendly, port di-publish langsung ke host, Postgres `POSTGRES_HOST_AUTH_METHOD=trust` (tanpa password, khusus lokal) |
-| `docker/compose.prod.yml` | Production di homelab yang **sudah punya** Traefik jalan (banyak project di 1 host, network `proxy` dishare) |
-| **`docker/compose.standalone.yml`** | **Universal** - satu file yang sama buat testing/pakai lokal ATAU deploy ke server publik mana pun, **tidak butuh infrastruktur lain** (pakai Caddy, self-contained, auto-HTTPS) |
+| `docker-compose.yml` | Local development - hot-friendly, ports published straight to the host, Postgres `POSTGRES_HOST_AUTH_METHOD=trust` (no password, local only) |
+| `docker/compose.prod.yml` | Production on a homelab that **already has** Traefik running (many projects on one host, shared `proxy` network) |
+| **`docker/compose.standalone.yml`** | **Universal** - the same single file for local testing/use OR deploying to any public server, **no other infrastructure needed** (uses Caddy, self-contained, auto-HTTPS) |
 
-Section ini fokus ke `docker-compose.yml` (dev). Untuk `docker/compose.standalone.yml`, lihat section ["Standalone: Universal"](#standalone-universal--testing-lokal-atau-deploy-publik) di bawah. Untuk `docker/compose.prod.yml`, lihat ["Production: Homelab"](#production-homelab-proxmox--banyak-project-di-1-host).
+This section focuses on `docker-compose.yml` (dev). For `docker/compose.standalone.yml`, see the ["Standalone: Universal"](#standalone-universal-local-testing-or-public-deploy) section below. For `docker/compose.prod.yml`, see ["Production: Homelab"](#production-homelab-proxmox--many-projects-on-one-host).
 
 ---
 
-## Prasyarat
+## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) terinstall dan jalan
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
 ---
 
@@ -26,25 +26,25 @@ cd sso.yado
 make docker-fresh
 ```
 
-`make docker-fresh` otomatis: copy `.env.example` → `.env`, build image, jalankan container, generate `APP_KEY`, migrate database, generate Passport keys, dan seed roles + admin user.
+`make docker-fresh` automatically: copies `.env.example` → `.env`, builds the image, starts the containers, generates `APP_KEY`, migrates the database, generates Passport keys, and seeds roles + the admin user.
 
-Setelah selesai, akses di **http://localhost:8000**.
+When it finishes, open **http://localhost:8000**.
 
-Login superadmin pakai `ADMIN_EMAIL` / `ADMIN_PASSWORD` dari `.env` (default: `admin@yado.my.id` / `change-me-in-production` - **wajib ganti** kalau bukan sekadar testing lokal).
+Log in as superadmin with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (default: `admin@yado.my.id` / `change-me-in-production` - **you must change this** unless it is just local testing).
 
 ---
 
-## Command Sehari-hari
+## Everyday Commands
 
-| Command | Keterangan |
+| Command | Description |
 |---------|------------|
-| `make docker-up` | Start container (build otomatis kalau image belum ada) |
-| `make docker-down` | Stop semua container |
-| `make docker-build` | Rebuild image - jalankan setelah ubah `composer.json` atau `package.json` |
-| `make docker-shell` | Masuk shell container `app` (buat jalanin `artisan` manual, dll) |
-| `make docker-logs` | Tail log semua container (app, nginx, postgres) |
+| `make docker-up` | Start containers (builds automatically if the image does not exist yet) |
+| `make docker-down` | Stop all containers |
+| `make docker-build` | Rebuild the image - run it after changing `composer.json` or `package.json` |
+| `make docker-shell` | Open a shell in the `app` container (for running `artisan` manually, etc.) |
+| `make docker-logs` | Tail logs of all containers (app, nginx, postgres) |
 
-Contoh jalanin artisan command manual:
+Example of running an artisan command manually:
 
 ```bash
 make docker-shell
@@ -53,7 +53,7 @@ php artisan tinker
 exit
 ```
 
-Atau langsung tanpa masuk shell:
+Or directly without opening a shell:
 
 ```bash
 docker compose exec app php artisan migrate
@@ -61,29 +61,29 @@ docker compose exec app php artisan migrate
 
 ---
 
-## Struktur
+## Structure
 
 ```
 docker/
   php/
-    Dockerfile            # Multi-stage: build assets (Node) → install deps (Composer) → runtime (PHP-FPM Alpine)
-    entrypoint.sh          # Sync public/ dari image ke named volume tiap container start
-  nginx/default.conf       # Nginx config (dipakai compose.prod.yml)
-  caddy/Caddyfile          # Caddy config (dipakai compose.standalone.yml)
-  compose.prod.yml         # Production homelab/Traefik
-  compose.standalone.yml   # Production universal/Caddy (atau testing lokal)
-docker-compose.yml          # Dev - tetap di root, ikut konvensi default lookup Docker Compose
+        Dockerfile            # Multi-stage: build assets (Node) → install deps (Composer) → runtime (PHP-FPM Alpine)
+        entrypoint.sh          # Sync public/ from the image into the named volume on every container start
+    nginx/default.conf       # Nginx config (used by compose.prod.yml)
+    caddy/Caddyfile          # Caddy config (used by compose.standalone.yml)
+    compose.prod.yml         # Production homelab/Traefik
+    compose.standalone.yml   # Universal production/Caddy (or local testing)
+docker-compose.yml          # Dev - stays in the root, following Docker Compose's default lookup convention
 ```
 
-`docker-compose.yml` (dev) sengaja tetap di root supaya `docker compose up` polos (tanpa `-f`) langsung jalan. Dua file production (`compose.prod.yml`, `compose.standalone.yml`) dipindah ke dalam `docker/` supaya root repo tidak penuh - konsekuensinya, manggil keduanya manual **wajib** pakai flag `--project-directory .` (dijelaskan di section "Standalone: Universal" di bawah). `make docker-prod-*` dan `make docker-standalone-*` sudah menangani ini otomatis, jadi kalau selalu pakai `make`, tidak perlu mikirin flag ini sama sekali.
+`docker-compose.yml` (dev) deliberately stays in the root so a plain `docker compose up` (without `-f`) just works. The two production files (`compose.prod.yml`, `compose.standalone.yml`) were moved into `docker/` to keep the repo root tidy - as a consequence, calling either manually **requires** the `--project-directory .` flag (explained in the "Standalone: Universal" section below). `make docker-prod-*` and `make docker-standalone-*` already handle this automatically, so if you always use `make`, you do not need to think about this flag at all.
 
-- **app** - PHP 8.4-FPM. `storage/` di-mount read-write (log, cache, session). `public/` di-mount sebagai named volume (`sso_public`) yang dishare dengan `nginx` - disinkron ulang dari isi image tiap container start via `docker/php/entrypoint.sh`, supaya asset hasil `npm run build` (yang ada di dalam image, bukan di host) bisa diakses langsung oleh Nginx.
-- **nginx** - serve `public/` dari volume `sso_public`, proxy `.php` ke `app:9000`
-- **postgres** - Postgres 16 Alpine, trust auth (tanpa password, khusus lokal - jangan pernah begini di production), data persist di volume `sso_postgres_data`
+- **app** - PHP 8.4-FPM. `storage/` is mounted read-write (logs, cache, sessions). `public/` is mounted as a named volume (`sso_public`) shared with `nginx` - it is re-synced from the image contents on every container start via `docker/php/entrypoint.sh`, so assets produced by `npm run build` (which live inside the image, not on the host) can be served directly by Nginx.
+- **nginx** - serves `public/` from the `sso_public` volume, proxies `.php` to `app:9000`
+- **postgres** - Postgres 16 Alpine, trust auth (no password, local only - never do this in production), data persisted in the `sso_postgres_data` volume
 
-> Kenapa `public/` tidak di-bind-mount langsung dari host seperti `storage/`? Karena `public/build` (hasil Vite) di-`.gitignore`, jadi tidak ada di host kecuali kamu jalankan `npm run build` manual - itu justru hal yang mau dihindari dengan Docker. Named volume + sync di entrypoint memastikan Nginx dan PHP-FPM selalu lihat file yang sama persis, hasil build terbaru dari image.
+> Why is `public/` not bind-mounted straight from the host like `storage/`? Because `public/build` (the Vite output) is in `.gitignore`, so it does not exist on the host unless you run `npm run build` manually - which is exactly what Docker is meant to avoid. A named volume + sync in the entrypoint makes sure Nginx and PHP-FPM always see exactly the same files, from the latest build in the image.
 
-Port bisa diubah lewat `.env`:
+Ports can be changed via `.env`:
 ```env
 APP_PORT=8000
 DB_PORT=5432
@@ -91,96 +91,96 @@ DB_PORT=5432
 
 ---
 
-## Testing Lokal: SSO + Client App, Keduanya di Docker
+## Local Testing: SSO + Client App, Both in Docker
 
-Ini bagian yang paling sering bikin bingung - begitu client app juga di-Docker-kan, container tidak bisa saling panggil via `localhost` seperti biasa.
+This is the part that confuses people most - once the client app is also Dockerized, the containers cannot call each other via `localhost` as usual.
 
-### Kenapa `localhost` tidak jalan antar container
+### Why `localhost` does not work between containers
 
-`localhost` di dalam sebuah container merujuk ke **container itu sendiri**, bukan ke host atau ke container lain. Ini penting karena OAuth flow punya dua jenis komunikasi:
+Inside a container, `localhost` refers to **the container itself**, not the host or another container. This matters because the OAuth flow has two kinds of communication:
 
-1. **Browser → SSO** (redirect ke halaman login, dsb.) - ini request dari browser user, bukan dari dalam container. Selama nginx SSO map ke port host (`localhost:8000`), ini selalu jalan normal.
-2. **Client app (server) → SSO (server)** - pertukaran `code` jadi `access_token` di `/oauth/token`, dan fetch profil di `/api/user`. Ini **request dari dalam container client app**, jadi `http://localhost:8000` tidak akan sampai ke container SSO.
+1. **Browser → SSO** (redirect to the login page, etc.) - this is a request from the user's browser, not from inside a container. As long as the SSO nginx maps to a host port (`localhost:8000`), this always works normally.
+2. **Client app (server) → SSO (server)** - exchanging the `code` for an `access_token` at `/oauth/token`, and fetching the profile at `/api/user`. These are **requests from inside the client app container**, so `http://localhost:8000` will not reach the SSO container.
 
-### Solusi: `host.docker.internal`
+### Solution: `host.docker.internal`
 
-Docker Desktop (Windows & Mac) sudah sediakan DNS khusus `host.docker.internal` yang selalu mengarah ke mesin host. Manfaatkan ini untuk komunikasi server-to-server, sementara redirect browser tetap pakai `localhost`.
+Docker Desktop (Windows & Mac) provides a special DNS name `host.docker.internal` that always points to the host machine. Use it for server-to-server communication, while browser redirects keep using `localhost`.
 
-Di client app, split jadi dua config:
+In the client app, split this into two configs:
 
 ```php
-// config/sso.php (di client app)
+// config/sso.php (in the client app)
 return [
     'client_id'     => env('SSO_CLIENT_ID'),
     'client_secret' => env('SSO_CLIENT_SECRET'),
     'redirect_uri'  => env('SSO_REDIRECT_URI'),
 
-    // Dipakai untuk redirect browser (harus localhost, sesuai apa yang diketik user)
+        // Used for browser redirects (must be localhost, matching what the user types)
     'base_url'      => env('SSO_BASE_URL', 'http://localhost:8000'),
 
-    // Dipakai untuk request server-to-server (token exchange, fetch profil)
-    // Kalau kosong, fallback ke base_url (aman untuk setup non-Docker)
+        // Used for server-to-server requests (token exchange, profile fetch)
+        // If empty, falls back to base_url (safe for non-Docker setups)
     'internal_url'  => env('SSO_INTERNAL_URL', env('SSO_BASE_URL', 'http://localhost:8000')),
 ];
 ```
 
 ```env
-# .env client app (jalan di Docker juga)
+# client app .env (also running in Docker)
 SSO_BASE_URL=http://localhost:8000
 SSO_INTERNAL_URL=http://host.docker.internal:8000
 ```
 
-Lalu di `SsoController` client app:
+Then in the client app's `SsoController`:
 
 ```php
-// redirect() - tetap pakai base_url karena ini URL yang dibuka browser
+// redirect() - still uses base_url because this is the URL the browser opens
 return redirect(config('sso.base_url') . '/oauth/authorize?' . $query);
 
-// callback() - pakai internal_url karena ini HTTP call dari server client ke server SSO
+// callback() - uses internal_url because this is an HTTP call from the client server to the SSO server
 $tokenResponse = Http::asForm()->post(config('sso.internal_url') . '/oauth/token', [...]);
 $profile = Http::withToken($token)->get(config('sso.internal_url') . '/api/user')->json();
 ```
 
-### Langkah Setup
+### Setup Steps
 
-1. Jalankan SSO via `make docker-fresh` - nginx map ke `localhost:8000`
-2. Daftarkan client app di dashboard SSO dengan redirect URI `http://localhost:8001/auth/callback` (asumsi client app di port 8001)
-3. Di project client app, buat `docker-compose.yml` serupa dengan nginx map ke port **berbeda** (`8001:80`)
-4. Isi `.env` client app sesuai contoh di atas - `SSO_BASE_URL` pakai `localhost`, `SSO_INTERNAL_URL` pakai `host.docker.internal`
-5. Test: buka `http://localhost:8001` → klik login → redirect ke `http://localhost:8000/login` → login → redirect balik ke `http://localhost:8001/dashboard` dengan session aktif
+1. Run SSO via `make docker-fresh` - nginx maps to `localhost:8000`
+2. Register the client app in the SSO dashboard with the redirect URI `http://localhost:8001/auth/callback` (assuming the client app is on port 8001)
+3. In the client app project, create a similar `docker-compose.yml` with nginx mapped to a **different** port (`8001:80`)
+4. Fill in the client app's `.env` as in the example above - `SSO_BASE_URL` uses `localhost`, `SSO_INTERNAL_URL` uses `host.docker.internal`
+5. Test: open `http://localhost:8001` → click login → redirected to `http://localhost:8000/login` → log in → redirected back to `http://localhost:8001/dashboard` with an active session
 
-> Linux tanpa Docker Desktop: `host.docker.internal` tidak otomatis tersedia. Tambahkan `extra_hosts: ["host.docker.internal:host-gateway"]` di service `app` pada `docker-compose.yml` client app.
+> Linux without Docker Desktop: `host.docker.internal` is not available automatically. Add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `app` service in the client app's `docker-compose.yml`.
 
 ---
 
-## Standalone: Universal (Testing Lokal ATAU Deploy Publik)
+## Standalone: Universal (Local Testing OR Public Deploy)
 
-`docker/compose.standalone.yml` beda dari dua file lain - **tidak ada infrastruktur yang harus disiapkan lebih dulu** (bukan Traefik seperti `docker/compose.prod.yml`, bukan juga sekadar dev seperti `docker-compose.yml`). Pakai [Caddy](https://caddyserver.com) sebagai reverse proxy, yang punya satu sifat penting: **HTTPS otomatis** - tinggal kasih domain asli, Caddy langsung provision sertifikat Let's Encrypt sendiri tanpa certbot, tanpa konfigurasi manual.
+`docker/compose.standalone.yml` differs from the other two files - **there is no infrastructure to prepare first** (not Traefik like `docker/compose.prod.yml`, and not just dev like `docker-compose.yml`). It uses [Caddy](https://caddyserver.com) as the reverse proxy, which has one important property: **automatic HTTPS** - just give it a real domain and Caddy provisions a Let's Encrypt certificate by itself, with no certbot and no manual configuration.
 
-Satu file ini bisa dipakai untuk dua skenario, dibedakan cuma dari satu variabel di `.env`:
+This single file serves two scenarios, distinguished by just one variable in `.env`:
 
-| Skenario | `.env` |
+| Scenario | `.env` |
 |---|---|
-| Testing / pakai lokal | `CADDY_SITE_ADDRESS=http://localhost` (default - HTTP polos, tidak ada percobaan HTTPS) |
-| Deploy ke server publik | `CADDY_SITE_ADDRESS=sso.namadomain.com` (tanpa skema - Caddy otomatis pakai HTTPS + Let's Encrypt) |
+| Local testing / use | `CADDY_SITE_ADDRESS=http://localhost` (default - plain HTTP, no HTTPS attempt) |
+| Deploy to a public server | `CADDY_SITE_ADDRESS=sso.yourdomain.com` (no scheme - Caddy automatically uses HTTPS + Let's Encrypt) |
 
-### Kenapa ini beda dari `docker/compose.prod.yml`
+### How this differs from `docker/compose.prod.yml`
 
-`docker/compose.prod.yml` mengasumsikan kamu sudah punya Traefik jalan (cocok untuk homelab dengan banyak project). `docker/compose.standalone.yml` sebaliknya - **berdiri sendiri**, tidak butuh network eksternal, tidak butuh reverse proxy lain sudah terpasang. Cocok untuk:
-- Testing cepat sebelum commit ke setup homelab yang lebih besar
-- Deploy ke VPS tunggal (DigitalOcean, Linode, EC2 standalone, dll.) yang cuma menjalankan SSO Engine ini saja
-- Demo atau staging environment yang perlu HTTPS instan tanpa ribet
+`docker/compose.prod.yml` assumes you already have Traefik running (suited to a homelab with many projects). `docker/compose.standalone.yml` is the opposite - it is **self-sufficient**, needs no external network, and no other reverse proxy to be installed. Suitable for:
+- Quick testing before committing to a bigger homelab setup
+- Deploying to a single VPS (DigitalOcean, Linode, standalone EC2, etc.) that only runs this SSO Engine
+- Demo or staging environments that need instant HTTPS without hassle
 
 ### Setup
 
-1. Copy `.env.example` → `.env`, isi `DB_USERNAME`/`DB_PASSWORD` (wajib, sama seperti `docker/compose.prod.yml` - tidak ada opsi password kosong)
-2. Untuk **testing lokal**: biarkan `CADDY_SITE_ADDRESS=http://localhost` (default)
-3. Untuk **deploy publik**: set `CADDY_SITE_ADDRESS=sso.namadomain.com` - pastikan DNS domain itu sudah mengarah ke IP server **sebelum** container jalan (Caddy butuh itu buat verifikasi Let's Encrypt), dan port 80+443 harus terbuka ke internet (Caddy pakai 80 untuk HTTP-01 challenge, 443 untuk trafik HTTPS)
+1. Copy `.env.example` → `.env`, fill in `DB_USERNAME`/`DB_PASSWORD` (required, same as `docker/compose.prod.yml` - there is no empty-password option)
+2. For **local testing**: leave `CADDY_SITE_ADDRESS=http://localhost` (default)
+3. For **public deploy**: set `CADDY_SITE_ADDRESS=sso.yourdomain.com` - make sure that domain's DNS already points to the server's IP **before** the containers run (Caddy needs it for Let's Encrypt verification), and that ports 80+443 are open to the internet (Caddy uses 80 for the HTTP-01 challenge and 443 for HTTPS traffic)
 4. Deploy:
    ```bash
    make docker-standalone-deploy
    ```
-5. Akses sesuai `CADDY_SITE_ADDRESS` - `http://localhost` untuk lokal, `https://sso.namadomain.com` untuk publik (otomatis HTTPS, tidak perlu langkah tambahan)
+5. Access it according to `CADDY_SITE_ADDRESS` - `http://localhost` for local, `https://sso.yourdomain.com` for public (HTTPS is automatic, no extra steps)
 
 ### Update
 
@@ -188,29 +188,29 @@ Satu file ini bisa dipakai untuk dua skenario, dibedakan cuma dari satu variabel
 make docker-standalone-update
 ```
 
-### Command
+### Commands
 
-| Command | Keterangan |
+| Command | Description |
 |---------|------------|
 | `make docker-standalone-deploy` | First-time deploy: build + up + migrate + seed |
-| `make docker-standalone-update` | Update: pull + rebuild + migrate (data aman) |
-| `make docker-standalone-down` | Stop semua container |
-| `make docker-standalone-logs` | Tail log semua container (termasuk Caddy) |
-| `make docker-standalone-shell` | Masuk shell container `app` |
+| `make docker-standalone-update` | Update: pull + rebuild + migrate (data is safe) |
+| `make docker-standalone-down` | Stop all containers |
+| `make docker-standalone-logs` | Tail logs of all containers (including Caddy) |
+| `make docker-standalone-shell` | Open a shell in the `app` container |
 
-### Kalau sebelumnya kena error saat coba Docker
+### If you hit an error trying Docker before
 
-Kalau kamu pernah coba jalanin SSO ini via Docker sebelumnya dan error - kemungkinan besar penyebabnya ekstensi PHP `sodium` yang belum ada di image (dibutuhkan Passport untuk JWT, lewat `lcobucci/jwt`). Ini sudah diperbaiki di `docker/php/Dockerfile` (ditambahkan `libsodium-dev` + `docker-php-ext-install sodium`) - kalau masih pakai image lama, jalankan ulang dengan `--build` supaya image di-rebuild dari awal:
+If you tried running this SSO via Docker before and hit an error, the most likely cause is the `sodium` PHP extension missing from the image (Passport needs it for JWT, via `lcobucci/jwt`). This has been fixed in `docker/php/Dockerfile` (`libsodium-dev` + `docker-php-ext-install sodium` were added) - if you are still on an old image, run it again with `--build` so the image is rebuilt from scratch:
 
 ```bash
 docker compose -f docker/compose.standalone.yml --project-directory . up -d --build
 ```
 
-> Perhatikan flag `--project-directory .` - wajib ada tiap kali panggil `docker compose` manual dengan `-f docker/compose.*.yml`, supaya semua path relatif di dalam file itu (env_file, volume `.env`, dst.) tetap resolve ke root repo, bukan ke folder `docker/` tempat file compose-nya berada. `make docker-standalone-*` sudah otomatis menyertakan flag ini.
+> Note the `--project-directory .` flag - it is required every time you call `docker compose` manually with `-f docker/compose.*.yml`, so that all relative paths inside that file (env_file, the `.env` volume, etc.) still resolve to the repo root, not the `docker/` folder where the compose file lives. `make docker-standalone-*` already includes this flag automatically.
 
-### Deploy ke VM/LXC Proxmox (sekali jalan)
+### Deploy to a Proxmox VM/LXC (one shot)
 
-Kalau targetnya VM atau LXC container baru di Proxmox, ada skrip khusus yang otomatis: cek/install Docker, setup `.env` kalau belum ada, dan deteksi first-deploy vs update:
+If the target is a new VM or LXC container on Proxmox, there is a dedicated script that automatically: checks/installs Docker, sets up `.env` if it does not exist, and detects first-deploy vs update:
 
 ```bash
 git clone https://github.com/srytmj/sso.yado.git
@@ -218,39 +218,39 @@ cd sso.yado
 bash scripts/deploy-docker-proxmox.sh
 ```
 
-Jalankan skrip yang sama lagi kapan pun untuk update (otomatis pull + migrate, bukan migrate:fresh - data aman). Skrip ini akan memperingatkan (dan minta konfirmasi) kalau terdeteksi dijalankan langsung di host Proxmox alih-alih di VM/LXC guest-nya - Docker sebaiknya tidak jalan langsung di host hypervisor.
+Run the same script again at any time to update (it automatically pulls + migrates, not migrate:fresh - data is safe). The script warns (and asks for confirmation) if it detects it is being run directly on the Proxmox host instead of in the VM/LXC guest - Docker should not run directly on the hypervisor host.
 
 ---
 
-## Production: Homelab (Proxmox + Banyak Project di 1 Host)
+## Production: Homelab (Proxmox + Many Projects on One Host)
 
-`docker/compose.prod.yml` dipisah dari `docker-compose.yml` (dev) - bedanya:
+`docker/compose.prod.yml` is separate from `docker-compose.yml` (dev) - the differences:
 
 | | Dev (`docker-compose.yml`) | Prod (`docker/compose.prod.yml`) |
 |---|---|---|
-| Port | Publish langsung ke host (`localhost:8000`) | Tidak publish port - masuk lewat reverse proxy |
-| PostgreSQL | Trust auth (tanpa password) | `POSTGRES_USER`/`POSTGRES_PASSWORD` wajib diisi kuat |
-| Migration | `migrate:fresh` (boleh hilang data, dev) | `migrate` (data production tidak boleh hilang) |
-| Restart policy | Tidak diset | `unless-stopped` |
-| Network | Berdiri sendiri | Join network eksternal `proxy` (Traefik) |
+| Port | Published directly to the host (`localhost:8000`) | No published ports - traffic enters through the reverse proxy |
+| PostgreSQL | Trust auth (no password) | `POSTGRES_USER`/`POSTGRES_PASSWORD` must be set to strong values |
+| Migration | `migrate:fresh` (data loss is fine, dev) | `migrate` (production data must not be lost) |
+| Restart policy | Not set | `unless-stopped` |
+| Network | Standalone | Joins the external `proxy` network (Traefik) |
 
-### Kenapa Traefik?
+### Why Traefik?
 
-Kalau kamu punya ~10 project Docker Compose di satu host Proxmox, cara paling maintainable adalah **satu reverse proxy bersama** yang otomatis "menemukan" container baru lewat label - bukan tiap project bikin sendiri-sendiri mapping port + Nginx + SSL. Traefik adalah pilihan paling umum untuk pola ini karena native baca Docker socket dan auto-provision SSL Let's Encrypt tanpa config manual per-domain.
+If you have ~10 Docker Compose projects on one Proxmox host, the most maintainable approach is **one shared reverse proxy** that automatically "discovers" new containers via labels - rather than each project making its own port mapping + Nginx + SSL. Traefik is the most common choice for this pattern because it natively reads the Docker socket and auto-provisions Let's Encrypt SSL without per-domain manual config.
 
-`docker/compose.prod.yml` sudah siap untuk itu - service `nginx` join network eksternal bernama `proxy` dan punya label Traefik. Kalau kamu sudah punya Traefik jalan untuk project lain, tinggal pastikan nama network-nya cocok.
+`docker/compose.prod.yml` is already ready for that - the `nginx` service joins an external network named `proxy` and has Traefik labels. If you already have Traefik running for other projects, just make sure the network name matches.
 
-> **Pakai reverse proxy lain** (Nginx Proxy Manager, Caddy, dll.)? Prinsipnya sama: hapus block `labels:` Traefik, join network yang dipakai proxy kamu, lalu daftarkan host/domain di UI/config proxy tersebut mengarah ke container `nginx` port 80.
+> **Using a different reverse proxy** (Nginx Proxy Manager, Caddy, etc.)? The principle is the same: remove the Traefik `labels:` block, join the network your proxy uses, then register the host/domain in that proxy's UI/config pointing to the `nginx` container on port 80.
 
-### Setup Awal
+### Initial Setup
 
-1. **Buat network Traefik** (sekali saja, dishare semua project):
+1. **Create the Traefik network** (once only, shared by all projects):
    ```bash
    docker network create proxy
    ```
-   Kalau Traefik kamu sudah jalan dan sudah punya network sendiri, pakai nama itu - edit `networks.proxy.name` di `docker/compose.prod.yml` supaya cocok.
+      If your Traefik is already running and has its own network, use that name - edit `networks.proxy.name` in `docker/compose.prod.yml` to match.
 
-2. **Siapkan `.env`** - selain variabel biasa, production butuh:
+2. **Prepare `.env`** - besides the usual variables, production needs:
    ```env
    APP_ENV=production
    APP_DEBUG=false
@@ -258,11 +258,11 @@ Kalau kamu punya ~10 project Docker Compose di satu host Proxmox, cara paling ma
    ASSET_URL=https://sso.yado.my.id
 
    DB_USERNAME=postgres
-   DB_PASSWORD=isi-password-kuat
+      DB_PASSWORD=enter-a-strong-password
    ```
-   Beda dari dev: production **wajib** isi `DB_USERNAME`/`DB_PASSWORD` dengan password asli (tidak boleh kosong) - keduanya langsung jadi kredensial superuser Postgres yang dipakai app buat autentikasi. Tidak ada pemisahan root/user seperti MySQL, karena image resmi Postgres cuma punya satu superuser yang dibuat dari `POSTGRES_USER`/`POSTGRES_PASSWORD`. `docker/compose.prod.yml` sudah di-set untuk require ini.
+      Unlike dev, production **requires** `DB_USERNAME`/`DB_PASSWORD` to be set with a real password (must not be empty) - both directly become the Postgres superuser credentials the app uses to authenticate. There is no root/user separation like MySQL, because the official Postgres image only has one superuser, created from `POSTGRES_USER`/`POSTGRES_PASSWORD`. `docker/compose.prod.yml` is already set up to require this.
 
-3. **Sesuaikan domain** di `docker/compose.prod.yml`, ganti bagian label Traefik:
+3. **Adjust the domain** in `docker/compose.prod.yml` by changing the Traefik label part:
    ```yaml
    - "traefik.http.routers.sso.rule=Host(`sso.yado.my.id`)"
    ```
@@ -271,9 +271,9 @@ Kalau kamu punya ~10 project Docker Compose di satu host Proxmox, cara paling ma
    ```bash
    make docker-prod-deploy
    ```
-   Ini build image, jalankan container, generate `APP_KEY` + Passport keys, migrate (bukan fresh), dan seed roles + admin user sekali di awal.
+      This builds the image, starts the containers, generates `APP_KEY` + Passport keys, migrates (not fresh), and seeds roles + the admin user once at the start.
 
-5. Traefik akan otomatis detect container dan provision SSL. Cek dashboard Traefik kamu untuk konfirmasi router `sso` muncul dan sehat.
+5. Traefik will automatically detect the container and provision SSL. Check your Traefik dashboard to confirm the `sso` router appears and is healthy.
 
 ### Update
 
@@ -281,66 +281,66 @@ Kalau kamu punya ~10 project Docker Compose di satu host Proxmox, cara paling ma
 make docker-prod-update
 ```
 
-Pull kode terbaru, rebuild image, `migrate --force` (bukan fresh - data aman), lalu re-cache config/route/view.
+Pulls the latest code, rebuilds the image, runs `migrate --force` (not fresh - data is safe), then re-caches config/route/view.
 
-### Command Production
+### Production Commands
 
-| Command | Keterangan |
+| Command | Description |
 |---------|------------|
 | `make docker-prod-deploy` | First-time deploy: build + up + migrate + seed |
-| `make docker-prod-update` | Update: pull + rebuild + migrate (data aman) |
-| `make docker-prod-down` | Stop container production |
-| `make docker-prod-logs` | Tail log semua container production |
-| `make docker-prod-shell` | Masuk shell container `app` production |
+| `make docker-prod-update` | Update: pull + rebuild + migrate (data is safe) |
+| `make docker-prod-down` | Stop production containers |
+| `make docker-prod-logs` | Tail logs of all production containers |
+| `make docker-prod-shell` | Open a shell in the production `app` container |
 
-### Kalau Punya 10 Project di Host yang Sama
+### If You Have 10 Projects on the Same Host
 
-- Tiap project punya `docker/compose.prod.yml` sendiri dengan `name:` unik di baris pertama (supaya nama volume/network tidak tabrakan) - SSO Engine ini sudah pakai `name: sso-yado`.
-- Semua join network `proxy` yang **sama** (satu Traefik untuk semua), tapi masing-masing punya network internal sendiri (`yado_sso_prod` di sini) untuk komunikasi app↔nginx↔postgres yang terisolasi dari project lain.
-- Postgres tiap project idealnya **container terpisah** (seperti setup ini) kecuali kamu sengaja mau satu Postgres server dishare banyak project - kalau begitu, ubah `DB_HOST` ke hostname Postgres bersama dan hapus service `postgres` dari compose file ini.
-- Backup: volume `sso_postgres_data` dan `sso_storage` yang perlu di-backup rutin (bukan `sso_public`, itu regenerable dari image).
+- Each project has its own `docker/compose.prod.yml` with a unique `name:` on the first line (so volume/network names do not collide) - this SSO Engine already uses `name: sso-yado`.
+- All join the **same** `proxy` network (one Traefik for everything), but each has its own internal network (`yado_sso_prod` here) for app↔nginx↔postgres communication isolated from other projects.
+- Each project's Postgres is ideally a **separate container** (as in this setup) unless you deliberately want one Postgres server shared by many projects - in that case, change `DB_HOST` to the shared Postgres hostname and remove the `postgres` service from this compose file.
+- Backups: the `sso_postgres_data` and `sso_storage` volumes need regular backups (not `sso_public`, which is regenerable from the image).
 
 ---
 
-## Migrasi Data dari MySQL Lama (Upgrade Deployment)
+## Migrating Data from the Old MySQL (Deployment Upgrade)
 
-Kalau kamu upgrade deployment lama yang masih pakai MySQL ke versi ini (Postgres), tersedia command sekali-jalan buat mindahin semua data:
+If you are upgrading an old deployment that still uses MySQL to this version (Postgres), a one-shot command is available to move all the data:
 
 ```bash
 php artisan db:migrate-to-pgsql
 ```
 
-Command ini baca koneksi MySQL lama dari env `MYSQL_LEGACY_HOST`/`MYSQL_LEGACY_PORT`/`MYSQL_LEGACY_DATABASE`/`MYSQL_LEGACY_USERNAME`/`MYSQL_LEGACY_PASSWORD` (lihat `.env.example`), lalu **TRUNCATE** dulu tabel-tabel tujuan di Postgres sebelum copy data - aman dijalankan berkali-kali, tapi destruktif terhadap data yang sudah ada di Postgres saat ini.
+This command reads the old MySQL connection from the env vars `MYSQL_LEGACY_HOST`/`MYSQL_LEGACY_PORT`/`MYSQL_LEGACY_DATABASE`/`MYSQL_LEGACY_USERNAME`/`MYSQL_LEGACY_PASSWORD` (see `.env.example`), then **TRUNCATEs** the destination tables in Postgres before copying data - safe to run repeatedly, but destructive to data currently in Postgres.
 
-- `php artisan db:migrate-to-pgsql` - interaktif, minta konfirmasi dulu
-- `php artisan db:migrate-to-pgsql --force` - skip konfirmasi (cocok buat scripted upgrade flow)
+- `php artisan db:migrate-to-pgsql` - interactive, asks for confirmation first
+- `php artisan db:migrate-to-pgsql --force` - skips confirmation (suited to a scripted upgrade flow)
 
-Hanya relevan untuk deployment lama era-MySQL yang sedang di-upgrade. Instalasi baru bisa abaikan ini dan biarkan `MYSQL_LEGACY_*` kosong.
+Only relevant for old MySQL-era deployments being upgraded. Fresh installs can ignore this and leave `MYSQL_LEGACY_*` empty.
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solusi |
+| Problem | Solution |
 |---------|--------|
-| `docker compose up` gagal, port sudah dipakai | Ganti `APP_PORT` / `DB_PORT` di `.env`, atau stop service lokal yang pakai port sama |
-| CSS/JS tidak muncul | Assets di-build saat `docker build` (stage Node) - kalau ganti file di `resources/`, jalankan `make docker-build` ulang |
-| `Connection refused` ke Postgres | Container `postgres` belum ready - `docker-compose.yml` sudah pakai `healthcheck` + `depends_on: condition: service_healthy`, tapi kalau masih gagal cek `docker compose logs postgres` |
-| Perubahan kode PHP tidak kerasa | Hanya `storage/` yang di-mount volume; kalau ubah file di `app/`, `routes/`, dll. perlu `make docker-build` ulang (karena kode di-copy saat build, bukan mount) |
-| `host.docker.internal` tidak resolve (Linux) | Tambah `extra_hosts: ["host.docker.internal:host-gateway"]` di compose file |
-| `docker-prod-deploy` gagal: network `proxy` tidak ada | `docker network create proxy` dulu, atau sesuaikan nama network di `docker/compose.prod.yml` dengan Traefik yang sudah ada |
-| Traefik tidak detect container | Cek label `traefik.enable=true` ada, container join network yang sama dengan Traefik, dan Traefik punya akses ke Docker socket (`/var/run/docker.sock`) |
-| Postgres production gagal start | `POSTGRES_USER`/`POSTGRES_PASSWORD` diisi dari `DB_USERNAME`/`DB_PASSWORD` - kalau kosong, container `postgres` bisa gagal start atau fallback ke default yang tidak aman. Pastikan keduanya terisi di `.env` production |
-| Error terkait `ext-sodium` / JWT saat `composer install` di dalam container | Image lama belum punya ekstensi `sodium` - jalankan ulang dengan `--build` supaya image di-rebuild dari `docker/php/Dockerfile` yang sudah include `libsodium-dev` + `docker-php-ext-install sodium` |
-| Caddy gagal provision HTTPS (`docker-standalone`) | Pastikan DNS domain di `CADDY_SITE_ADDRESS` sudah mengarah ke IP server **sebelum** container start, dan port 80+443 terbuka ke internet (bukan cuma di firewall lokal - cek juga security group/NSG kalau di cloud) |
-| `docker-standalone` gak bisa diakses sama sekali walau container "Up" | Cek jangan taruh port di `CADDY_SITE_ADDRESS` (mis. `http://localhost:8080`) kalau `HTTP_PORT` sudah diganti dari default - itu bikin Caddy listen di port yang disebutkan DI DALAM alamat itu (jadi 8080 di dalam container), padahal Docker cuma mapping `HTTP_PORT:80`. `CADDY_SITE_ADDRESS` biarkan tanpa port, atur port host lewat `HTTP_PORT`/`HTTPS_PORT` saja |
-| `docker-prod`/`docker-standalone` - `composer install` gagal dengan error `Class ... not found` (mis. `Laravel\Pail\PailServiceProvider`) | `bootstrap/cache/*.php` dari host ikut ke-copy ke image dan isinya menyebut package dev yang tidak ikut ter-install di `--no-dev`. Sudah difix di `.dockerignore` + `Dockerfile` (copy `bootstrap/cache` hasil regenerate dari stage vendor) - kalau masih kena, rebuild image dari awal dengan `--build` |
+| `docker compose up` fails, port already in use | Change `APP_PORT` / `DB_PORT` in `.env`, or stop the local service using the same port |
+| CSS/JS does not show up | Assets are built during `docker build` (Node stage) - if you change files in `resources/`, run `make docker-build` again |
+| `Connection refused` to Postgres | The `postgres` container is not ready yet - `docker-compose.yml` already uses `healthcheck` + `depends_on: condition: service_healthy`, but if it still fails, check `docker compose logs postgres` |
+| PHP code changes have no effect | Only `storage/` is volume-mounted; if you change files in `app/`, `routes/`, etc. you need to run `make docker-build` again (because the code is copied at build time, not mounted) |
+| `host.docker.internal` does not resolve (Linux) | Add `extra_hosts: ["host.docker.internal:host-gateway"]` to the compose file |
+| `docker-prod-deploy` fails: network `proxy` does not exist | Run `docker network create proxy` first, or adjust the network name in `docker/compose.prod.yml` to match your existing Traefik |
+| Traefik does not detect the container | Check that the `traefik.enable=true` label is present, the container joins the same network as Traefik, and Traefik has access to the Docker socket (`/var/run/docker.sock`) |
+| Production Postgres fails to start | `POSTGRES_USER`/`POSTGRES_PASSWORD` are filled from `DB_USERNAME`/`DB_PASSWORD` - if empty, the `postgres` container may fail to start or fall back to an insecure default. Make sure both are set in the production `.env` |
+| `ext-sodium` / JWT errors during `composer install` inside the container | The old image lacks the `sodium` extension - run again with `--build` so the image is rebuilt from `docker/php/Dockerfile`, which already includes `libsodium-dev` + `docker-php-ext-install sodium` |
+| Caddy fails to provision HTTPS (`docker-standalone`) | Make sure the DNS of the domain in `CADDY_SITE_ADDRESS` already points to the server's IP **before** the containers start, and that ports 80+443 are open to the internet (not just in the local firewall - also check the security group/NSG if on a cloud) |
+| `docker-standalone` is not reachable at all even though the containers are "Up" | Check that you did not put a port in `CADDY_SITE_ADDRESS` (e.g. `http://localhost:8080`) when `HTTP_PORT` was changed from the default - that makes Caddy listen on the port named INSIDE that address (so 8080 inside the container), while Docker only maps `HTTP_PORT:80`. Leave `CADDY_SITE_ADDRESS` without a port and set the host port via `HTTP_PORT`/`HTTPS_PORT` only |
+| `docker-prod`/`docker-standalone` - `composer install` fails with `Class ... not found` (e.g. `Laravel\Pail\PailServiceProvider`) | `bootstrap/cache/*.php` from the host got copied into the image and refers to dev packages that are not installed under `--no-dev`. Fixed in `.dockerignore` + `Dockerfile` (copy the regenerated `bootstrap/cache` from the vendor stage) - if you still hit it, rebuild the image from scratch with `--build` |
 
 ---
 
-## Referensi
+## References
 
-- Setup manual tanpa Docker (2 app di 1 device pakai `php artisan serve`): lihat section "Testing Lokal" di [`INTEGRATION.md`](INTEGRATION.md)
-- Deploy production non-Docker (EC2/VM manual via SSH): [`DEPLOY_AWS.md`](DEPLOY_AWS.md), [`DEPLOY_AZURE.md`](DEPLOY_AZURE.md)
-- Deploy production Docker, homelab/Proxmox dengan Traefik yang sudah ada: section "Production: Homelab" di atas
-- Deploy production Docker, universal/standalone (VPS tunggal, tanpa Traefik, HTTPS otomatis): section "Standalone: Universal" di atas
+- Manual setup without Docker (2 apps on 1 device using `php artisan serve`): see the "Local Testing" section in [`INTEGRATION.md`](INTEGRATION.md)
+- Non-Docker production deploy (manual EC2/VM over SSH): [`DEPLOY_AWS.md`](DEPLOY_AWS.md), [`DEPLOY_AZURE.md`](DEPLOY_AZURE.md)
+- Docker production deploy, homelab/Proxmox with an existing Traefik: the "Production: Homelab" section above
+- Docker production deploy, universal/standalone (single VPS, no Traefik, automatic HTTPS): the "Standalone: Universal" section above

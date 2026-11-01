@@ -43,7 +43,7 @@ class ResetPasswordController extends Controller
         );
 
         if ($status === Password::PasswordReset) {
-            $this->auditLog->record('auth.password_reset_completed', "Password direset untuk \"{$request->input('email')}\"");
+            $this->auditLog->record('auth.password_reset_completed', "Password reset for \"{$request->input('email')}\"");
 
             return redirect()->route('login')->with('status', __($status));
         }

@@ -39,7 +39,7 @@
                 parsed = new URL(value);
             } catch {
                 uriStatus = 'error';
-                uriMessage = 'Format URL tidak valid (harus menyertakan protocol seperti https://).';
+                uriMessage = 'Invalid URL format (must include a protocol such as https://).';
                 return;
             }
 
@@ -48,32 +48,32 @@
 
             if (value.includes('#')) {
                 uriStatus = 'error';
-                uriMessage = 'Redirect URI tidak boleh mengandung URL fragment (#).';
+                uriMessage = 'Redirect URI must not contain a URL fragment (#).';
                 return;
             }
 
             if (['javascript', 'data', 'file'].includes(scheme)) {
                 uriStatus = 'error';
-                uriMessage = 'Protocol tersebut tidak diperbolehkan.';
+                uriMessage = 'That protocol is not allowed.';
                 return;
             }
 
             const isLocalhost = host === 'localhost' || host === '127.0.0.1';
             if (isLocalhost) {
                 uriStatus = 'warning';
-                uriMessage = 'Menggunakan localhost (hanya untuk pengujian/development).';
+                uriMessage = 'Using localhost (for testing/development only).';
                 return;
             }
 
             if (scheme === 'http') {
                 uriStatus = 'error';
-                uriMessage = 'Production URI wajib menggunakan HTTPS.';
+                uriMessage = 'Production URIs must use HTTPS.';
                 return;
             }
 
             if (scheme !== 'https') {
                 uriStatus = 'error';
-                uriMessage = 'URI harus menggunakan HTTPS.';
+                uriMessage = 'The URI must use HTTPS.';
                 return;
             }
 
@@ -152,7 +152,7 @@
                             <p class="text-xs text-error mt-1">{$form.errors.redirect_uri}</p>
                         {/if}
                         <p class="text-[11px] text-base-content/40 mt-1">
-                            URL tempat user dialihkan setelah menyetujui izin login OAuth2.
+                            The URL users are redirected to after approving the OAuth2 login permission.
                         </p>
                     </div>
 

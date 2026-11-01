@@ -25,7 +25,7 @@ class InviteUserAction
 
         Mail::to($email)->send(new InvitationMail($invitation));
 
-        $this->auditLog->record('dashboard.user_invited', "Undangan dikirim ke \"{$email}\"");
+        $this->auditLog->record('dashboard.user_invited', "Invitation sent to \"{$email}\"");
 
         return $invitation;
     }

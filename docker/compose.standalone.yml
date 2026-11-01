@@ -1,22 +1,22 @@
 name: sso-yado
 
-# Standalone: self-contained (tidak butuh network eksternal seperti Traefik), pakai
-# Caddy sebagai reverse proxy. Satu file yang sama untuk dua skenario:
+# Standalone: self-contained (needs no external network like Traefik), uses
+# Caddy as the reverse proxy. The same single file serves two scenarios:
 #
-#   - Testing/pakai lokal:  CADDY_SITE_ADDRESS=http://localhost (default)  -> akses http://localhost
-#   - Deploy publik:        CADDY_SITE_ADDRESS=sso.namadomain.com          -> Caddy otomatis provision
-#                            HTTPS via Let's Encrypt, tidak perlu setup manual apa pun
+#   - Local testing/use:     CADDY_SITE_ADDRESS=http://localhost (default)  -> visit http://localhost
+#   - Public deploy:        CADDY_SITE_ADDRESS=sso.yourdomain.com          -> Caddy automatically provisions
+#                            HTTPS via Let's Encrypt, no manual setup needed
 #
-# PENTING: JANGAN taruh port di CADDY_SITE_ADDRESS (mis. "http://localhost:8080") kalau
-# HTTP_PORT sudah diganti dari default 80 - Caddy akan listen di port yang disebut DI
-# DALAM alamat itu (jadi 8080 di dalam container), sementara mapping HTTP_PORT tetap
-# mengarah ke port 80 container. Ganti port host cukup lewat HTTP_PORT/HTTPS_PORT saja,
-# biarkan CADDY_SITE_ADDRESS tanpa port.
+# IMPORTANT: do NOT put a port in CADDY_SITE_ADDRESS (e.g. "http://localhost:8080") if
+# HTTP_PORT has been changed from the default 80 - Caddy will listen on the port named INSIDE
+# that address (so 8080 inside the container), while the HTTP_PORT mapping still
+# points to the container's port 80. Change the host port through HTTP_PORT/HTTPS_PORT only,
+# and leave CADDY_SITE_ADDRESS without a port.
 #
-# Pakai: make docker-standalone-deploy (atau manual: docker compose -f
-# docker/compose.standalone.yml --project-directory . up -d --build - flag
-# --project-directory WAJIB supaya semua path relatif di file ini tetap resolve ke
-# root repo, bukan ke folder docker/)
+# Usage: make docker-standalone-deploy (or manually: docker compose -f
+# docker/compose.standalone.yml --project-directory . up -d --build - the
+# --project-directory flag is REQUIRED so that all relative paths in this file still resolve to
+# the repo root, not the docker/ folder)
 
 services:
   app:
@@ -30,9 +30,9 @@ services:
       - ./.env:/var/www/html/.env
     env_file: .env
     environment:
-      # Project ini pakai read/write split (lihat config/database.php) - DB_HOST saja
-      # tidak cukup, DB_READ_HOST/DB_WRITE_HOST eksplisit di .env akan menang atas
-      # fallback ke DB_HOST kalau tidak di-override juga di sini.
+      # This project uses a read/write split (see config/database.php) - DB_HOST alone
+      # is not enough, an explicit DB_READ_HOST/DB_WRITE_HOST in .env would win over
+      # the DB_HOST fallback if not overridden here as well.
       DB_HOST: postgres
       DB_READ_HOST: postgres
       DB_WRITE_HOST: postgres
@@ -64,9 +64,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      # Beda dari MySQL: image Postgres resmi tidak punya konsep root+user terpisah,
-      # cuma 1 superuser yang dibuat dari POSTGRES_USER/POSTGRES_PASSWORD - jadi ini
-      # HARUS sama persis dengan DB_USERNAME/DB_PASSWORD yang dipakai aplikasi.
+      # Unlike MySQL: the official Postgres image has no separate root+user concept,
+      # only 1 superuser is created from POSTGRES_USER/POSTGRES_PASSWORD - so this
+      # MUST match the DB_USERNAME/DB_PASSWORD used by the application exactly.
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: db_sso

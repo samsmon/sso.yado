@@ -49,7 +49,7 @@ class LogoutController extends Controller
             return false;
         }
 
-        // Hanya allow HTTPS atau localhost
+        // Only allow HTTPS or localhost
         $scheme = $parsed['scheme'] ?? '';
         if (!in_array($scheme, ['https', 'http'], true)) {
             return false;
@@ -57,7 +57,7 @@ class LogoutController extends Controller
 
         $host = $parsed['host'];
 
-        // Localhost selalu diizinkan (development)
+        // Localhost is always allowed (development)
         if (in_array($host, ['localhost', '127.0.0.1'], true)) {
             return true;
         }

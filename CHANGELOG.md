@@ -1,111 +1,111 @@
-# Changelog
+﻿# Changelog
 
-Semua perubahan signifikan pada project ini didokumentasikan di sini.
+All notable changes to this project are documented in this file.
 
-Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
 ## [Unreleased]
 
 ### Changed
-- Nama ekosistem diperbarui (dari "White Archive" menjadi "Yado").
-- Perubahan referensi domain utama dari `*.suryatmaja.dev` menjadi `*.yado.my.id`.
-- Database engine dari MySQL ke **PostgreSQL** - semua koneksi (dev, prod, standalone) sekarang pakai `pgsql`, read/write split + sticky dipertahankan. `php artisan db:migrate-to-pgsql` disediakan untuk memindahkan seluruh data dari database MySQL lama (dibaca via koneksi `mysql`/`MYSQL_LEGACY_*`) ke Postgres sekali jalan, aman diulang (truncate tujuan dulu sebelum insert)
+- Ecosystem name updated (from "White Archive" to "Yado").
+- Primary domain reference updated from `*.suryatmaja.dev` to `*.yado.my.id`.
+- Database engine migrated from MySQL to **PostgreSQL** — all connections (dev, prod, standalone) now use `pgsql`, with read/write split + sticky preserved. `php artisan db:migrate-to-pgsql` is provided to migrate all data from the legacy MySQL database (accessed via the `mysql`/`MYSQL_LEGACY_*` connection) to Postgres in a single run, safe to re-run (truncates destination tables prior to insertion).
 
 ### Added
-- **Silent Authorization untuk Internal Passport Clients**: `App\Models\OAuth\Client::skipsAuthorization()` mengembalikan `! $this->revoked`, menghilangkan Blade consent screen ("Authorize Application") untuk client app resmi ekosistem Yado.
-- **Middleware `HandleOAuthPrompt` (`prompt=login`)**: Mendukung parameter OAuth standar `prompt=login` pada `/oauth/authorize`. Jika user sudah terautentikasi, middleware me-logout sesi SSO aktif dan membersihkan parameter `prompt` sebelum mengarahkan ke halaman login, mencegah loop logout pada session intended.
-- **Dukungan Login Username atau Email**: Input form login SSO (`Login.svelte`) diubah menjadi `type="text"` dengan label "Email Address or Username", placeholder instruktif, dan atribut `autocomplete="username"` sehingga pengguna dapat login menggunakan username (mis. `sehnauoi`) maupun alamat email tanpa terblokir validasi format email HTML5 browser.
-- **Docker Compose standalone (`docker/compose.standalone.yml`, `make docker-standalone-deploy`)** - self-contained pakai Caddy, satu file untuk testing lokal (`http://localhost`) maupun deploy publik (HTTPS otomatis via Let's Encrypt tinggal ganti `CADDY_SITE_ADDRESS`), tidak butuh Traefik/infrastruktur lain
-- Admin Settings (`/dashboard/settings`) - konfigurasi mail (Resend/SMTP) dan avatar storage (local/S3) dari dashboard, bukan hardcode `.env`
-- Email verification wajib sebelum akses `/account`, `/dashboard`, atau OAuth flow
-- Avatar upload (`/account`) - ke disk local atau S3 sesuai Settings
-- My Devices (`/account/sessions`) - lihat & logout browser/device yang login ke SSO, dengan label device
-- Audit Log (`/dashboard/audit-log`) - event keamanan & perubahan data (login, ganti password, role, invite, CRUD client, dst.)
-- Two-Factor Authentication / TOTP (`/account/two-factor`) - kompatibel Google Authenticator, Microsoft Authenticator, recovery codes
-- Theme toggle (system/light/dark) - persisted per user, satu klik ganti tema, no-FOUC via inline script
-- Multilanguage: Indonesia, English, 日本語 - switcher di My Account, `theme`/`locale` di-expose lewat `/api/user` untuk disinkronkan client app (opsional)
-- Docker Compose setup untuk development lokal (`make docker-fresh`) - PHP 8.4-FPM, Nginx, PostgreSQL 16
-- Docker Compose production untuk homelab (`docker/compose.prod.yml`, `make docker-prod-deploy`) - siap Traefik reverse proxy, Postgres dengan password wajib, `migrate` (bukan fresh)
-- Dashboard: log viewer (`/dashboard/logs`) - filter by level (custom dropdown, auto-apply), search, expand stack trace
-- Health check endpoint `/up` (built-in Laravel)
-- Rate limiting menyeluruh - `/oauth/*`, `/api/user`, semua halaman guest, dan semua route authenticated (per-user), dengan limit lebih ketat untuk aksi sensitif (ganti password, kirim invite, dst.)
-- Landing page publik di `/` - menjelaskan SSO Engine dan link ke login/register
-- Dashboard superadmin - gate akses role, layout sidebar + topbar
-- Dashboard: manajemen OAuth client apps (lihat, tambah, edit, hapus client)
-- Dashboard: manajemen user - aktifkan/nonaktifkan, assign role, invite via email
-- My Account (`/account`) - info akun, ganti password
-- My Account: active sessions & revoke device via `oauth_access_tokens`
-- Login page context awareness - banner nama aplikasi saat datang dari OAuth flow
-- Forgot password flow via email (Resend) - link reset expired 60 menit, single-use
-- Register: field full name opsional, fallback ke username jika kosong
+- **Silent Authorization for Internal Passport Clients**: `App\Models\OAuth\Client::skipsAuthorization()` returns `! $this->revoked`, eliminating the Blade consent screen ("Authorize Application") for official Yado ecosystem client apps.
+- **Middleware `HandleOAuthPrompt` (`prompt=login`)**: Supports the standard OAuth parameter `prompt=login` on `/oauth/authorize`. If the user is already authenticated, the middleware logs out the active SSO session and clears the `prompt` parameter before redirecting to the login page, preventing logout loops on intended sessions.
+- **Username or Email Login Support**: The SSO login form input (`Login.svelte`) was changed to `type="text"` with the label "Email Address or Username", instructional placeholder, and attribute `autocomplete="username"`, allowing users to log in using either a username (e.g. `sehnauoi`) or email address without triggering HTML5 browser email validation blocks.
+- **Docker Compose Standalone (`docker/compose.standalone.yml`, `make docker-standalone-deploy`)** — self-contained using Caddy, a single file for both local testing (`http://localhost`) and public deployment (automatic HTTPS via Let's Encrypt by updating `CADDY_SITE_ADDRESS`), requiring no Traefik or external infrastructure.
+- Admin Settings (`/dashboard/settings`) — configure mail (Resend/SMTP) and avatar storage (local/S3) directly from the dashboard, instead of hardcoding `.env`.
+- Mandatory email verification prior to accessing `/account`, `/dashboard`, or OAuth flows.
+- Avatar upload (`/account`) — stored to local disk or S3 according to Settings.
+- My Devices (`/account/sessions`) — view and log out browsers/devices logged into SSO, with device labels.
+- Audit Log (`/dashboard/audit-log`) — security events and data modifications (login, password change, role update, invite, client CRUD, etc.).
+- Two-Factor Authentication / TOTP (`/account/two-factor`) — compatible with Google Authenticator, Microsoft Authenticator, and recovery codes.
+- Theme toggle (system/light/dark) — persisted per user, single-click theme change, no FOUC via inline script.
+- Multilanguage: Indonesian, English, Japanese — switcher in My Account; `theme`/`locale` exposed via `/api/user` for optional synchronization by client apps.
+- Docker Compose setup for local development (`make docker-fresh`) — PHP 8.4-FPM, Nginx, PostgreSQL 16.
+- Production Docker Compose for homelab (`docker/compose.prod.yml`, `make docker-prod-deploy`) — Traefik reverse-proxy ready, Postgres with required password, `migrate` (not fresh).
+- Dashboard: log viewer (`/dashboard/logs`) — filter by level (custom dropdown, auto-apply), search, expandable stack trace.
+- Health check endpoint `/up` (built-in Laravel).
+- Comprehensive rate limiting — `/oauth/*`, `/api/user`, all guest pages, and all authenticated routes (per-user), with stricter limits for sensitive actions (password change, send invite, etc.).
+- Public landing page at `/` — explains SSO Engine with links to login/register.
+- Superadmin dashboard — role access gate, sidebar + topbar layout.
+- Dashboard: OAuth client apps management (view, add, edit, delete clients).
+- Dashboard: user management — activate/deactivate, assign roles, invite via email.
+- My Account (`/account`) — account information, password change.
+- My Account: active sessions & device revocation via `oauth_access_tokens`.
+- Login page context awareness — application name banner when arriving from an OAuth flow.
+- Forgot password flow via email (Resend) — single-use reset link expiring in 60 minutes.
+- Registration: optional full name field, falls back to username if omitted.
 
 ### Changed
-- Ganti password sekarang otomatis revoke semua OAuth token aktif user (semua client app di-logout)
-- Logout SSO support `redirect_uri` - client app bisa redirect balik setelah logout (whitelisted ke domain terdaftar)
+- Changing password now automatically revokes all active OAuth tokens for the user (logging out all client apps).
+- SSO logout supports `redirect_uri` — client apps can redirect back after logout (whitelisted to registered domains).
 
 ### Fixed
-- **Navigasi Cross-Origin Pasca-Login OAuth**: `LoginController` dan `TwoFactorChallengeController` menggunakan `Inertia::location($intended)` (HTTP 409) bukan `redirect()->intended()`, mencegah kegagalan CORS pada request AJAX Inertia saat browser dialihkan kembali ke domain client aplikasi ekosistem.
-- **Rate Limit 429 pada Form Login**: Menambahkan `$middleware->trustProxies(at: '*')` di `bootstrap/app.php` dan memisahkan pembatasan login ke named limiter `RateLimiter::for('login')` (10 request/menit per email + IP klien asli). Sebelumnya, request GET/POST bertumpuk di anonymous key yang sama dan seluruh IP klien terlipat menjadi IP gateway Docker (`172.20.0.1`).
-- Image Docker (`docker/php/Dockerfile`) tidak punya ekstensi `sodium` yang dibutuhkan Passport (via `lcobucci/jwt`) - bikin `composer install` gagal di dalam container. Ditambahkan `libsodium-dev` + `docker-php-ext-install sodium`
-- `home.blade.php` (landing page publik) tidak punya dark mode maupun multilanguage sama sekali padahal halaman ini genuinely dirender - sudah dikonversi penuh
-- Beberapa icon dropdown kekurangan varian `dark:` dan dua icon checklist pakai `stroke-width` yang tidak konsisten (2 vs 1.5 di tempat lain)
+- **Post-Login Cross-Origin Navigation for OAuth**: `LoginController` and `TwoFactorChallengeController` use `Inertia::location($intended)` (HTTP 409) rather than `redirect()->intended()`, preventing CORS failures on Inertia AJAX requests when redirecting the browser back to ecosystem client app domains.
+- **429 Rate Limit on Login Form**: Added `$middleware->trustProxies(at: '*')` in `bootstrap/app.php` and separated login throttling into a named limiter `RateLimiter::for('login')` (10 requests/min per email + original client IP). Previously, GET/POST requests shared the same anonymous key and all client IPs collapsed into the Docker gateway IP (`172.20.0.1`).
+- Docker image (`docker/php/Dockerfile`) lacked the `sodium` extension required by Passport (via `lcobucci/jwt`), causing `composer install` failures inside the container. Added `libsodium-dev` + `docker-php-ext-install sodium`.
+- `home.blade.php` (public landing page) lacked dark mode and multilanguage support despite being rendered; fully converted.
+- Several dropdown icons were missing `dark:` variants and two checklist icons used inconsistent `stroke-width` (2 vs 1.5 elsewhere).
 
 ### Removed
-- `resources/views/flux/` - komponen Flux UI yang tidak pernah dipakai (dilarang di `.claude/CLAUDE.md`), beserta dependency `livewire/flux`
-- `welcome.blade.php` - landing page default Laravel yang tidak pernah di-render
+- `resources/views/flux/` — unused Flux UI components (prohibited in `.claude/CLAUDE.md`), along with `livewire/flux` dependency.
+- `welcome.blade.php` — default Laravel landing page that was never rendered.
 
 ---
 
 ## [0.1.0] - 2026-07-20
 
-Implementasi awal SSO Engine - fondasi OAuth2 + autentikasi lokal.
+Initial SSO Engine implementation — OAuth2 foundation + local authentication.
 
 ### Added
 
-**Auth Lokal**
-- Register user dengan validasi: username, email, password (bcrypt min 8 karakter)
-- Login via email/password dengan Laravel session
-- Logout: hancurkan session + revoke semua access token aktif
-- Role system: `user` dan `superadmin`, di-seed otomatis
-- Middleware `CheckUserActive` - user `is_active = false` ditolak di semua endpoint
+**Local Auth**
+- User registration with validation: username, email, password (bcrypt, minimum 8 characters).
+- Login via email/password using Laravel sessions.
+- Logout: destroy session + revoke all active access tokens.
+- Role system: `user` and `superadmin`, seeded automatically.
+- Middleware `CheckUserActive` — rejects users with `is_active = false` across all endpoints.
 
 **OAuth2 Authorization Code + PKCE**
-- `GET /oauth/authorize` - titik masuk OAuth2 flow via Laravel Passport
-- PKCE (`S256`) wajib - request tanpa `code_challenge` ditolak
-- Silent SSO - session aktif langsung redirect dengan auth code tanpa tampilkan login form
-- Auto-approve consent untuk first-party client via `skipsAuthorization()`
-- `POST /oauth/token` - tukar auth code + code_verifier dengan access token & refresh token
+- `GET /oauth/authorize` — OAuth2 flow entry point via Laravel Passport.
+- Mandatory PKCE (`S256`) — requests without `code_challenge` are rejected.
+- Silent SSO — active session redirects directly with authorization code without showing the login form.
+- Auto-approve consent for first-party clients via `skipsAuthorization()`.
+- `POST /oauth/token` — exchange authorization code + code_verifier for access token & refresh token.
 
 **Token Management**
-- Access token TTL: 60 menit
-- Refresh token TTL: 30 hari, single-use (rotation on use)
-- `RevokeTokenAction` - revoke semua token + refresh token saat logout
-- Refresh token flow: `grant_type=refresh_token` via `/oauth/token`
+- Access token TTL: 60 minutes.
+- Refresh token TTL: 30 days, single-use (rotation on use).
+- `RevokeTokenAction` — revokes all tokens + refresh tokens upon logout.
+- Refresh token flow: `grant_type=refresh_token` via `/oauth/token`.
 
 **Userinfo Endpoint**
-- `GET /api/user` - return profil user (id, name, username, email, avatar, role)
-- Proteksi: `auth:api` + scope `profile:read`
-- Response flat tanpa wrapper (sesuai API contract SRS)
+- `GET /api/user` — returns user profile (id, name, username, email, avatar, role).
+- Protected by `auth:api` + scope `profile:read`.
+- Flat response without wrappers (matching SRS API contract).
 
 **Database**
-- Tabel `users` dengan kolom: name, username, email, avatar, role_id, is_active
-- Tabel `roles` dengan seeder: user (id=1), superadmin (id=2)
-- Read/write split dengan `sticky: true`, database `db_sso`
-- Semua tabel OAuth dikelola otomatis oleh Passport
+- `users` table with columns: name, username, email, avatar, role_id, is_active.
+- `roles` table with seeders: user (id=1), superadmin (id=2).
+- Read/write split with `sticky: true`, database `db_sso`.
+- All OAuth tables managed automatically by Passport.
 
 **Security**
-- CSRF protection aktif di semua web routes
-- Rate limiting: `throttle:5,1` pada `POST /login`, `throttle:3,1` pada `/oauth/token`
-- HTTPS enforced via `forceScheme('https')` di production
-- Passport keys tidak di-commit ke repository
+- CSRF protection active on all web routes.
+- Rate limiting: `throttle:5,1` on `POST /login`, `throttle:3,1` on `/oauth/token`.
+- HTTPS enforced via `forceScheme('https')` in production.
+- Passport keys are not committed to the repository.
 
 **Infrastructure**
-- `scripts/deploy.sh` - first-time server setup
-- `scripts/update.sh` - git pull + migrate + cache clear
-- `Makefile` - shortcut `make deploy`, `make update`, `make sync`
-- `sync.sh` - auto-sync tech stack dari SRS.md ke CLAUDE.md
+- `scripts/deploy.sh` — first-time server setup.
+- `scripts/update.sh` — git pull + migrate + cache clear.
+- `Makefile` — shortcuts `make deploy`, `make update`, `make sync`.
+- `sync.sh` — auto-sync tech stack from SRS.md to CLAUDE.md.
 
 ---
 

@@ -3,7 +3,7 @@
 Status: Done
 Priority: Medium
 Created: 2026-07-20 21:00
-Request: Buat halaman manajemen OAuth client apps di dashboard superadmin. Superadmin bisa lihat semua registered client, tambah client baru, lihat client_id & client_secret, edit nama/redirect URI, dan hapus/revoke client - semua tanpa perlu tinker atau database GUI.
+Request: Create an OAuth client application management interface in the superadmin dashboard. Superadmins can view registered clients, register new clients, inspect client_id & client_secret, edit name/redirect URI, and delete/revoke clients without relying on tinker or database GUIs.
 
 Depends on: TASK-013
 
@@ -11,29 +11,29 @@ Depends on: TASK-013
 
 ## DEV Response
 
-- [x] `GET /dashboard/applications` → `ApplicationController::index()` - `app/Http/Controllers/Dashboard/ApplicationController.php`
-- [x] `GET /dashboard/applications/create` → `ApplicationController::create()`
-- [x] `POST /dashboard/applications` → `ApplicationController::store()` - delegate ke `ApplicationService::create()`, redirect ke show dengan `->with('new_secret', $client->plainSecret)`
-- [x] `GET /dashboard/applications/{id}` → `ApplicationController::show()`
-- [x] `PATCH /dashboard/applications/{id}` → `ApplicationController::update()` - validasi `name required`, `redirect_uri url|max:1000`
-- [x] `DELETE /dashboard/applications/{id}` → `ApplicationController::destroy()` - delegate ke `ApplicationService::delete()`
-- [x] `ApplicationService` - `list()`: `Client::orderByDesc('created_at')->get()`, `create()`: `ClientRepository::create(userId: null, ...)`, `update()`: `$client->update(['name', 'redirect'])`, `delete()`: revoke semua token + refresh tokens client lalu `$clients->delete($client)` - `app/Services/Dashboard/ApplicationService.php`
-- [x] Client secret flash via `session('new_secret')` - satu kali tampil saat create, warning kuning di view show
-- [x] Views: `dashboard/applications/index.blade.php` (tabel), `create.blade.php` (form), `show.blade.php` (credentials + edit form)
+- [x] `GET /dashboard/applications` -> `ApplicationController::index()` - `app/Http/Controllers/Dashboard/ApplicationController.php`
+- [x] `GET /dashboard/applications/create` -> `ApplicationController::create()`
+- [x] `POST /dashboard/applications` -> `ApplicationController::store()` - delegates to `ApplicationService::create()`, redirects to show with `->with('new_secret', $client->plainSecret)`
+- [x] `GET /dashboard/applications/{id}` -> `ApplicationController::show()`
+- [x] `PATCH /dashboard/applications/{id}` -> `ApplicationController::update()` - validation `name required`, `redirect_uri url|max:1000`
+- [x] `DELETE /dashboard/applications/{id}` -> `ApplicationController::destroy()` - delegates to `ApplicationService::delete()`
+- [x] `ApplicationService` - `list()`: `Client::orderByDesc('created_at')->get()`, `create()`: `ClientRepository::create(userId: null, ...)`, `update()`: `$client->update(['name', 'redirect'])`, `delete()`: revokes all tokens + refresh tokens for client then `$clients->delete($client)` - `app/Services/Dashboard/ApplicationService.php`
+- [x] Client secret flashed via `session('new_secret')` - displayed once on creation with amber warning callout
+- [x] Views: `dashboard/applications/index.blade.php` (table), `create.blade.php` (form), `show.blade.php` (credentials + edit form)
 
 ---
 
 ## QA Response
 
-> **Method**: Static code review. DEV Response belum di-update (checklist `[ ]`), tapi implementasi sudah ada.
+> **Method**: Static code review.
 
-- [x] GET `/dashboard/applications` → `ApplicationService::list()` return semua clients ✓
-- [x] Tambah client: `ApplicationService::create()` pakai `ClientRepository::create(userId: null, ...)` → first-party client ✓
-- [x] `store()` redirect ke show route dengan `->with('new_secret', $client->plainSecret)` - secret hanya ada di session flash (sekali tampil) ✓ (`ApplicationController:38`)
-- [x] Refresh halaman show → flash `new_secret` sudah hilang → secret tidak tampil lagi ✓ (session flash one-time)
-- [x] Edit: validasi `name required`, `redirect_uri url|max:1000` - URL tidak valid → validation error ✓ (`ApplicationController:31`)
-- [x] Hapus: `ApplicationService::delete()` iterates `$client->tokens`, revoke + refreshToken, lalu `clients->delete($client)` ✓
-- [x] Semua route /dashboard/applications dalam middleware group `auth` + `superadmin` ✓
-- [x] Views: index, create, show exist ✓
+- [x] GET `/dashboard/applications` -> `ApplicationService::list()` returns all clients
+- [x] Add client: `ApplicationService::create()` uses `ClientRepository::create(userId: null, ...)` -> first-party client
+- [x] `store()` redirects to show route with `->with('new_secret', $client->plainSecret)` - secret only exists in session flash (displayed once) (`ApplicationController:38`)
+- [x] Refreshing show page -> flashed `new_secret` cleared -> secret no longer displayed (one-time session flash)
+- [x] Edit: validation `name required`, `redirect_uri url|max:1000` - invalid URL triggers validation error (`ApplicationController:31`)
+- [x] Delete: `ApplicationService::delete()` iterates `$client->tokens`, revokes + refreshToken, then `clients->delete($client)`
+- [x] All /dashboard/applications routes in `auth` + `superadmin` middleware group
+- [x] Views: index, create, show exist
 
 **Status: Done**

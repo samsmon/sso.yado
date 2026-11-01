@@ -26,7 +26,7 @@ class ForgotPasswordController extends Controller
         ]);
 
         Password::sendResetLink($request->only('email'));
-        $this->auditLog->record('auth.password_reset_requested', "Reset password diminta untuk \"{$request->input('email')}\"");
+        $this->auditLog->record('auth.password_reset_requested', "Password reset requested for \"{$request->input('email')}\"");
 
         return back()->with('status', __('passwords.sent'));
     }

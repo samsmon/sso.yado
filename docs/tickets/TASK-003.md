@@ -1,9 +1,9 @@
-# TASK-003: Register & Login Lokal (Blade)
+# TASK-003: Local Register & Login (Blade)
 
 Status: Done
 Priority: High
 Created: 2026-07-20 20:00
-Request: Buat flow register dan login berbasis session menggunakan Blade. Ini adalah entry point user sebelum OAuth flow dimulai. Setelah login berhasil, user di-redirect ke intended URL (biasanya kembali ke `/oauth/authorize`).
+Request: Create session-based registration and login flows using Blade. This is the user entry point before OAuth flows begin. After successful login, redirect the user to their intended URL (typically back to `/oauth/authorize`).
 
 Depends on: TASK-002
 
@@ -12,32 +12,32 @@ Depends on: TASK-002
 ## DEV Response
 
 **Register:**
-- [x] `RegisterController`: method `show()` (GET /register) dan `store()` (POST /register)
-- [x] `RegisterService`: assign role default "user", hash password via model cast, simpan user
-- [x] Blade view `resources/views/auth/register.blade.php`: form name, username, email, password, password_confirmation
-- [x] Validasi: name required, username unique/regex `[a-z0-9_]+`, email unique, password min 8 confirmed
-- [x] Setelah register: auto-login dan redirect ke intended atau `/`
+- [x] `RegisterController`: methods `show()` (GET /register) and `store()` (POST /register)
+- [x] `RegisterService`: assigns default role "user", hashes password via model cast, persists user
+- [x] Blade view `resources/views/auth/register.blade.php`: form fields for name, username, email, password, password_confirmation
+- [x] Validation: name required, username unique/regex `[a-z0-9_]+`, email unique, password min 8 confirmed
+- [x] After registration: auto-login and redirect to intended URL or `/`
 
 **Login:**
-- [x] `LoginController`: method `show()` (GET /login) dan `store()` (POST /login)
-- [x] `LoginService`: attempt auth, cek `is_active`, throw `ValidationException` jika gagal
-- [x] Blade view `resources/views/auth/login.blade.php`: form email, password, remember me
-- [x] Jika `is_active = false`: tolak login dengan pesan "Akun Anda tidak aktif."
-- [x] Rate limiting: `throttle:5,1` pada POST /login
-- [x] Setelah login: redirect ke `redirect()->intended('/')`
-- [x] CSRF middleware aktif di semua route web (Laravel default)
+- [x] `LoginController`: methods `show()` (GET /login) and `store()` (POST /login)
+- [x] `LoginService`: attempts authentication, checks `is_active`, throws `ValidationException` on failure
+- [x] Blade view `resources/views/auth/login.blade.php`: form fields for email, password, remember me
+- [x] If `is_active = false`: reject login with message "Your account is inactive."
+- [x] Rate limiting: `throttle:5,1` on POST /login
+- [x] After login: redirect to `redirect()->intended('/')`
+- [x] CSRF middleware active across all web routes (Laravel default)
 
 **Logout:**
-- [x] `LogoutController`: `destroy()` - `Auth::logout()`, invalidate session, regenerate CSRF token, redirect ke `/login`
+- [x] `LogoutController`: `destroy()` - `Auth::logout()`, invalidate session, regenerate CSRF token, redirect to `/login`
 
 **Routes (web.php):**
 - [x] `GET /login`, `POST /login` (throttle:5,1)
 - [x] `GET /register`, `POST /register`
-- [x] `POST /logout` → `LogoutController@destroy` (middleware auth)
-- [x] Middleware `guest` untuk login dan register
+- [x] `POST /logout` -> `LogoutController@destroy` (auth middleware)
+- [x] `guest` middleware for login and register
 
 **Layout:**
-- [x] `resources/views/layouts/auth.blade.php` - base layout dengan Tailwind CDN
+- [x] `resources/views/layouts/auth.blade.php` - base layout with Tailwind CDN
 
 ---
 
@@ -45,20 +45,20 @@ Depends on: TASK-002
 
 > **Method**: Static code review.
 
-- [x] Register dengan data valid → user tersimpan, session terbentuk, redirect ke `/` - `RegisterController::store()` memanggil `RegisterService::register()`, `Auth::login()`, `session()->regenerate()`, `redirect()->intended('/')` ✓
-- [x] Register dengan email duplikat → validation error - `unique:users,email` rule di `RegisterController:26` ✓
-- [x] Register dengan username yang sudah ada → validation error - `unique:users,username` rule di `RegisterController:25` ✓
-- [x] Login dengan kredensial benar → session terbentuk, redirect ke intended URL - `LoginService::attempt()` + `redirect()->intended('/')` ✓
-- [x] Login dengan password salah → error message, tidak ada session - `Auth::attempt()` fail → `ValidationException` di `LoginService:18` ✓
-- [x] Login dengan user `is_active = false` → error "Akun Anda tidak aktif." - VERIFIED di `LoginService:26-30`: Auth::logout() dipanggil, ValidationException dengan pesan tepat ✓
-- [x] POST /login lebih dari 5x gagal dalam 1 menit → HTTP 429 - `throttle:5,1` di `routes/web.php:10` ✓
-- [x] CSRF token missing di form POST → HTTP 419 - Laravel default CSRF middleware aktif ✓
-- [x] Akses `/login` saat sudah login → redirect - `middleware('guest')` di route group `routes/web.php:8` ✓
-- [x] POST /logout → session hancur, redirect ke `/login` - `LogoutController::destroy()`: `Auth::logout()`, `invalidate()`, `regenerateToken()`, `redirect()->route('login')` ✓
+- [x] Register with valid data -> user persisted, session created, redirect to `/` - `RegisterController::store()` calls `RegisterService::register()`, `Auth::login()`, `session()->regenerate()`, `redirect()->intended('/')`
+- [x] Register with duplicate email -> validation error - `unique:users,email` rule in `RegisterController:26`
+- [x] Register with existing username -> validation error - `unique:users,username` rule in `RegisterController:25`
+- [x] Login with valid credentials -> session created, redirect to intended URL - `LoginService::attempt()` + `redirect()->intended('/')`
+- [x] Login with incorrect password -> error message, no session created - `Auth::attempt()` failure -> `ValidationException` in `LoginService:18`
+- [x] Login with `is_active = false` user -> error "Your account is inactive." - VERIFIED in `LoginService:26-30`: Auth::logout() called, ValidationException with exact message
+- [x] POST /login failed more than 5 times in 1 minute -> HTTP 429 - `throttle:5,1` in `routes/web.php:10`
+- [x] Missing CSRF token in POST form -> HTTP 419 - Laravel default CSRF middleware active
+- [x] Access `/login` while authenticated -> redirect - `middleware('guest')` in route group `routes/web.php:8`
+- [x] POST /logout -> session destroyed, redirect to `/login` - `LogoutController::destroy()`: `Auth::logout()`, `invalidate()`, `regenerateToken()`, `redirect()->route('login')`
 
 **Additional checks:**
-- [x] Controller thin - logic di LoginService & RegisterService, bukan Controller ✓
-- [x] Tidak ada `dd()` atau debug code ✓
-- [x] `POST /register` tidak punya throttle - SRS tidak mensyaratkan, aman untuk saat ini ✓
+- [x] Controller is thin - logic resides in LoginService & RegisterService, not Controller
+- [x] No `dd()` or debug code
+- [x] `POST /register` has no throttle - SRS did not require it, acceptable for now
 
 **Status: Done**

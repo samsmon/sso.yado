@@ -19,7 +19,7 @@ class CheckWebUserActive
             $request->session()->regenerateToken();
 
             return redirect()->route('login')
-                ->withErrors(['email' => 'Akun Anda tidak aktif.']);
+                ->withErrors(['email' => 'Your account is inactive.']);
         }
 
         return $next($request);

@@ -21,7 +21,7 @@ class UserManagementService
     {
         if ($user->id === $actor->id) {
             throw ValidationException::withMessages([
-                'is_active' => 'Tidak bisa menonaktifkan akun sendiri.',
+                'is_active' => 'You cannot deactivate your own account.',
             ]);
         }
 
@@ -42,7 +42,7 @@ class UserManagementService
 
         if ($user->id === $actor->id && ! $willBeSuperadmin) {
             throw ValidationException::withMessages([
-                'role_id' => 'Kamu tidak bisa menurunkan role akun sendiri.',
+                'role_id' => 'You cannot lower your own account's role.',
             ]);
         }
 
@@ -54,20 +54,20 @@ class UserManagementService
 
             if ($remainingSuperadmins === 0) {
                 throw ValidationException::withMessages([
-                    'role_id' => 'Tidak bisa menurunkan superadmin terakhir yang tersisa.',
+                    'role_id' => 'Cannot demote the last remaining superadmin.',
                 ]);
             }
         }
 
         $user->update(['role_id' => $roleId]);
 
-        $this->auditLog->record('dashboard.user_role_changed', "Role user \"{$user->email}\" diubah jadi \"{$role->name}\"", $user);
+        $this->auditLog->record('dashboard.user_role_changed', "Role of user \"{$user->email}\" changed to \"{$role->name}\"", $user);
     }
 
     public function changeUserPassword(User $user, string $newPassword): void
     {
         $user->update(['password' => bcrypt($newPassword)]);
 
-        $this->auditLog->record('dashboard.user_password_changed', "Password user \"{$user->email}\" diubah oleh superadmin", $user);
+        $this->auditLog->record('dashboard.user_password_changed', "Password of user \"{$user->email}\" changed by superadmin", $user);
     }
 }

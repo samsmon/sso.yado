@@ -10,7 +10,7 @@ class RedirectUriRule implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $fail('Redirect URI tidak valid.');
+            $fail('Invalid redirect URI.');
             return;
         }
 
@@ -18,24 +18,24 @@ class RedirectUriRule implements ValidationRule
         $host   = strtolower((string) parse_url($value, PHP_URL_HOST));
 
         if (in_array($scheme, ['javascript', 'data', 'file'], true)) {
-            $fail('Scheme tidak diizinkan.');
+            $fail('Scheme is not allowed.');
             return;
         }
 
         if (str_contains($value, '#')) {
-            $fail('Redirect URI tidak boleh mengandung fragment (#).');
+            $fail('Redirect URI must not contain a fragment (#).');
             return;
         }
 
         $isLocalhost = in_array($host, ['localhost', '127.0.0.1'], true);
 
         if ($scheme === 'http' && !$isLocalhost) {
-            $fail('Wajib menggunakan HTTPS untuk domain publik.');
+            $fail('HTTPS is required for public domains.');
             return;
         }
 
         if ($scheme !== 'https' && !$isLocalhost) {
-            $fail('Redirect URI tidak valid.');
+            $fail('Invalid redirect URI.');
             return;
         }
 

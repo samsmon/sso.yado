@@ -33,7 +33,7 @@ class RegisterController extends Controller
         ]);
 
         $user = $this->registerService->register($validated);
-        $this->auditLog->record('auth.registered', 'Registrasi akun baru', $user);
+        $this->auditLog->record('auth.registered', 'New account registration', $user);
 
         Auth::login($user);
 
