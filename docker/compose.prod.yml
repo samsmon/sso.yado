@@ -1,15 +1,15 @@
 name: sso-yado
 
-# Production compose untuk homelab (Proxmox + banyak project Docker di 1 host).
-# Beda dari docker-compose.yml (dev):
-#   - Tidak mount source code - kode di-bake ke image saat build
-#   - Join network eksternal "proxy" (Traefik) alih-alih expose port langsung
+# Production compose for the homelab (Proxmox + many Docker projects on one host).
+# Differences from docker-compose.yml (dev):
+#   - Does not mount source code - the code is baked into the image at build time
+#   - Joins the external "proxy" network (Traefik) instead of exposing ports directly
 #   - restart: unless-stopped + healthcheck
-#   - migrate (bukan migrate:fresh) saat update - data tidak boleh hilang
+#   - migrate (not migrate:fresh) on update - data must not be lost
 #
-# Pakai: make docker-prod-deploy (atau manual: docker compose -f docker/compose.prod.yml
-# --project-directory . up -d --build - flag --project-directory WAJIB supaya semua path
-# relatif di file ini tetap resolve ke root repo, bukan ke folder docker/)
+# Usage: make docker-prod-deploy (or manually: docker compose -f docker/compose.prod.yml
+# --project-directory . up -d --build - the --project-directory flag is REQUIRED so that all
+# relative paths in this file still resolve to the repo root, not the docker/ folder)
 
 services:
   app:
@@ -23,9 +23,9 @@ services:
       - ./.env:/var/www/html/.env
     env_file: .env
     environment:
-      # Project ini pakai read/write split (lihat config/database.php) - DB_HOST saja
-      # tidak cukup, DB_READ_HOST/DB_WRITE_HOST eksplisit di .env akan menang atas
-      # fallback ke DB_HOST kalau tidak di-override juga di sini.
+      # This project uses a read/write split (see config/database.php) - DB_HOST alone
+      # is not enough, an explicit DB_READ_HOST/DB_WRITE_HOST in .env would win over
+      # the DB_HOST fallback if not overridden here as well.
       DB_HOST: postgres
       DB_READ_HOST: postgres
       DB_WRITE_HOST: postgres
@@ -48,7 +48,7 @@ services:
       - sso
       - proxy
     labels:
-      # Traefik v2/v3 - sesuaikan Host() dan certresolver dengan setup Traefik kamu
+      # Traefik v2/v3 - adjust Host() and the certresolver to match your Traefik setup
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.sso.rule=Host(`sso.yado.my.id`)"
@@ -60,9 +60,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      # Beda dari MySQL: image Postgres resmi tidak punya konsep root+user terpisah,
-      # cuma 1 superuser yang dibuat dari POSTGRES_USER/POSTGRES_PASSWORD - jadi ini
-      # HARUS sama persis dengan DB_USERNAME/DB_PASSWORD yang dipakai aplikasi.
+      # Unlike MySQL: the official Postgres image has no separate root+user concept,
+      # only 1 superuser is created from POSTGRES_USER/POSTGRES_PASSWORD - so this
+      # MUST match the DB_USERNAME/DB_PASSWORD used by the application exactly.
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: db_sso

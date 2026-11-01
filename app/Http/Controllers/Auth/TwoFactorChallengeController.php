@@ -51,7 +51,7 @@ class TwoFactorChallengeController extends Controller
             || $this->twoFactor->verifyAndConsumeRecoveryCode($user, $code);
 
         if (! $isValid) {
-            $this->auditLog->record('account.two_factor_challenge_failed', 'Kode 2FA salah saat login', $user);
+            $this->auditLog->record('account.two_factor_challenge_failed', 'Wrong 2FA code at login', $user);
 
             return back()->withErrors(['code' => __('two_factor.invalid_code')]);
         }
@@ -61,7 +61,7 @@ class TwoFactorChallengeController extends Controller
 
         Auth::login($user, $remember);
         $request->session()->regenerate();
-        $this->auditLog->record('auth.login', 'Login berhasil (2FA)', $user);
+        $this->auditLog->record('auth.login', 'Login successful (2FA)', $user);
 
         $intended = $request->session()->pull('url.intended');
 

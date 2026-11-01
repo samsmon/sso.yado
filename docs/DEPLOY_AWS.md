@@ -1,51 +1,51 @@
-# Deploy ke AWS - SSO Engine
+﻿# Deploy to AWS - SSO Engine
 
-Panduan deploy `sso.yado.my.id` ke AWS menggunakan **EC2** (mirip VPS, paling fleksibel) atau **Elastic Beanstalk** (managed, auto-scaling).
+Deployment guide for `sso.yado.my.id` to AWS using **EC2** (VPS-like, most flexible) or **Elastic Beanstalk** (managed, auto-scaling).
 
 ---
 
-## Pilih Pendekatan
+## Choose an Approach
 
 | | EC2 | Elastic Beanstalk |
 |---|---|---|
 | Setup | Manual via SSH | CLI / console |
-| Kontrol | Penuh | Terbatas |
-| Harga | Dari ~$8/bln (t3.micro) | EC2 + overhead ~$10-15/bln |
-| Cocok untuk | Full control, mirip VPS | Cepat deploy, auto-scaling |
+| Control | Full | Limited |
+| Price | From ~$8/mo (t3.micro) | EC2 + overhead ~$10-15/mo |
+| Best for | Full control, VPS-like | Fast deploy, auto-scaling |
 
-**Rekomendasi**: EC2 - paling mirip dengan workflow `make deploy` yang sudah ada dan paling mudah di-debug.
+**Recommendation**: EC2 — closest to the existing `make deploy` workflow and easiest to debug.
 
 ---
 
-## Cara A - EC2 (Rekomendasi)
+## Method A - EC2 (Recommended)
 
-### 1. Buat EC2 Instance
+### 1. Create EC2 Instance
 
-1. Buka [console.aws.amazon.com](https://console.aws.amazon.com) → **EC2** → **Launch Instance**
-2. Konfigurasi:
+1. Open [console.aws.amazon.com](https://console.aws.amazon.com) → **EC2** → **Launch Instance**
+2. Configuration:
    - **Name**: `sso-yado`
-   - **AMI**: Ubuntu Server 24.04 LTS (Free Tier eligible) - **jangan pilih 26.04**, ondrej PPA belum support
-   - **Instance type**: `t3.micro` (2 vCPU, 1GB RAM) - cukup untuk mulai
-   - **Key pair**: Create new → download `.pem` → simpan baik-baik
-   - **Security Group** - buka inbound:
-     - SSH (22) dari IP kamu saja
-     - HTTP (80) dari anywhere
-     - HTTPS (443) dari anywhere
-3. Klik **Launch Instance**
+   - **AMI**: Ubuntu Server 24.04 LTS (Free Tier eligible) — **do not choose 26.04**, ondrej PPA does not support it yet
+   - **Instance type**: `t3.micro` (2 vCPU, 1GB RAM) — sufficient to start
+   - **Key pair**: Create new → download `.pem` → store securely
+   - **Security Group** — allow inbound:
+     - SSH (22) from your IP only
+     - HTTP (80) from anywhere
+     - HTTPS (443) from anywhere
+3. Click **Launch Instance**
 
-### 2. Alokasi Elastic IP (Opsional tapi Direkomendasikan)
+### 2. Allocate Elastic IP (Optional but Recommended)
 
-IP EC2 berubah setiap restart jika tidak pakai Elastic IP:
+EC2 public IP changes on each restart unless an Elastic IP is attached:
 
 1. EC2 → **Elastic IPs** → **Allocate Elastic IP**
-2. **Associate** ke instance yang baru dibuat
-3. Gunakan Elastic IP ini untuk DNS record
+2. **Associate** with the newly created instance
+3. Use this Elastic IP for your DNS records
 
-### 3. Connect ke Instance
+### 3. Connect to Instance
 
 ```bash
 chmod 400 your-key.pem
-ssh -i your-key.pem ubuntu@<ELASTIC_IP_ATAU_PUBLIC_IP>
+ssh -i your-key.pem ubuntu@<ELASTIC_IP_OR_PUBLIC_IP>
 ```
 
 ### 4. Install Dependencies
@@ -54,14 +54,14 @@ ssh -i your-key.pem ubuntu@<ELASTIC_IP_ATAU_PUBLIC_IP>
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install PHP 8.4 + extensions (wajib - symfony 8.x require PHP >=8.4.1)
+# Install PHP 8.4 + extensions (required - symfony 8.x requires PHP >=8.4.1)
 sudo apt install -y software-properties-common
 sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update
 sudo apt install -y php8.4 php8.4-fpm php8.4-pgsql php8.4-mbstring \
     php8.4-xml php8.4-curl php8.4-zip php8.4-bcmath php8.4-cli
 
-# Jika pakai Ubuntu 26.04 (Resolute), skip PPA - gunakan PHP 8.5 dari default repo:
+# If using Ubuntu 26.04 (Resolute), skip PPA - use PHP 8.5 from default repo:
 # sudo apt install -y php8.5 php8.5-fpm php8.5-pgsql php8.5-mbstring \
 #     php8.5-xml php8.5-curl php8.5-zip php8.5-bcmath php8.5-cli
 
@@ -74,10 +74,10 @@ sudo apt install -y nginx
 
 # Install PostgreSQL
 sudo apt install -y postgresql postgresql-contrib
-# Tidak ada mysql_secure_installation di Postgres - Ubuntu default pakai peer/md5 auth,
-# set password user postgres langsung di step "Setup Database" di bawah
+# There is no mysql_secure_installation in Postgres - Ubuntu defaults to peer/md5 auth,
+# set password for user postgres directly in the "Setup Database" step below
 
-# Install Node (untuk Vite build)
+# Install Node (for Vite build)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
@@ -87,7 +87,7 @@ sudo apt install -y git
 
 ### 5. Setup Database
 
-Masuk sebagai superuser `postgres` (peer auth lokal, tanpa password):
+Log in as superuser `postgres` (local peer auth, no password):
 
 ```bash
 sudo -u postgres psql
@@ -99,7 +99,7 @@ ALTER USER postgres WITH PASSWORD 'strong-password';
 \q
 ```
 
-Proyek ini pakai model satu superuser Postgres (bukan pola root + user dedicated seperti MySQL) - `.env` nanti diisi `DB_USERNAME=postgres` dan `DB_PASSWORD` sama dengan password yang di-set di atas.
+This project uses a single Postgres superuser model (rather than root + dedicated user like MySQL) — in `.env`, fill `DB_USERNAME=postgres` and `DB_PASSWORD` with the password set above.
 
 ### 6. Clone & Setup Project
 
@@ -113,13 +113,13 @@ cp .env.example .env
 nano .env
 ```
 
-Isi `.env` yang wajib diubah:
+Required `.env` values to update:
 
 ```env
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://sso.yado.my.id
-ASSET_URL=https://sso.yado.my.id   # harus sama dengan APP_URL - tanpa ini CSS tidak load
+ASSET_URL=https://sso.yado.my.id   # must match APP_URL - without this CSS will not load
 
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -138,7 +138,7 @@ ADMIN_PASSWORD=strong-admin-password
 ```
 
 ```bash
-# Jalankan deploy script (sama dengan make deploy)
+# Run deploy script (same as make deploy)
 sudo bash scripts/deploy.sh
 
 # Build assets
@@ -148,7 +148,7 @@ npm install && npm run build
 php artisan db:seed
 ```
 
-### 7. Konfigurasi Nginx
+### 7. Configure Nginx
 
 ```bash
 sudo nano /etc/nginx/sites-available/sso
@@ -177,7 +177,7 @@ server {
     error_page 404 /index.php;
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;  # ganti ke php8.5-fpm.sock jika Ubuntu 26.04
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;  # change to php8.5-fpm.sock if Ubuntu 26.04
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
@@ -190,60 +190,42 @@ server {
 ```
 
 ```bash
-# Aktifkan site
 sudo ln -s /etc/nginx/sites-available/sso /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
-
-# Set permission storage
-sudo chown -R www-data:www-data /var/www/sso/storage /var/www/sso/bootstrap/cache
-sudo chmod -R 775 /var/www/sso/storage /var/www/sso/bootstrap/cache
 ```
 
-### 8. Setup HTTPS via Let's Encrypt
+### 8. DNS & SSL (Cloudflare)
 
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d sso.yado.my.id
-
-# Auto-renewal
-sudo systemctl enable certbot.timer
-```
-
-### 9. Arahkan Domain ke EC2
-
-Di Cloudflare DNS:
-- Tambah **A record**: `sso` → `<ELASTIC_IP>` (proxy: ON)
-- SSL/TLS mode di Cloudflare: **Full (strict)**
-
-### 10. Verifikasi
-
-```bash
-sudo systemctl status nginx
-sudo systemctl status php8.4-fpm
-sudo systemctl status postgresql
-
-curl -I https://sso.yado.my.id
-```
+1. Cloudflare Dashboard → **DNS** → Add record:
+   - Type: `A`
+   - Name: `sso`
+   - IPv4: `<ELASTIC_IP_EC2>`
+   - Proxy: **Proxied** (orange cloud)
+2. Cloudflare Dashboard → **SSL/TLS**:
+   - Mode: **Full** atau **Full (strict)**
+3. Install Certbot jika pakai Full (strict):
+   ```bash
+   sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d sso.yado.my.id
+   ```
 
 ---
 
-## Cara B - Elastic Beanstalk
+## Method B - Elastic Beanstalk
 
-### 1. Install EB CLI
+### 1. Prerequisites
 
-```bash
-pip install awsebcli
-aws configure  # isi Access Key ID + Secret dari IAM
-```
+- AWS CLI installed & configured (`aws configure`)
+- EB CLI installed: `pip install awsebcli`
 
-### 2. Buat RDS (PostgreSQL Managed)
+### 2. Create RDS PostgreSQL (Managed Database)
 
 1. AWS Console → **RDS** → **Create database**
-2. Engine: PostgreSQL 16, Template: Free tier
-3. DB identifier: `sso-db`, username: `postgres`, password: isi sendiri
-4. Catat **Endpoint** (hostname) setelah database ready
+2. Engine: **PostgreSQL 16**, Template: **Free tier**
+3. DB identifier: `sso-db`, username: `postgres`, password: set your password
+4. Note the **Endpoint** (hostname) after the database is ready
 
 ### 3. Init Elastic Beanstalk
 
@@ -251,10 +233,10 @@ aws configure  # isi Access Key ID + Secret dari IAM
 cd /path/to/sso.yado
 
 eb init
-# Pilih region, platform: PHP 8.3, create new app: sso-yado
+# Choose region, platform: PHP 8.3, create new app: sso-yado
 ```
 
-Buat `.ebextensions/nginx.conf` untuk PHP-FPM:
+Create `.ebextensions/nginx.conf` for PHP-FPM:
 
 ```yaml
 # .ebextensions/laravel.config
@@ -288,11 +270,11 @@ eb setenv \
 
 ```bash
 eb create sso-production
-# atau update setelah ada:
+# or update existing:
 eb deploy
 ```
 
-### 6. Jalankan Migration (sekali)
+### 6. Run Migrations (once)
 
 ```bash
 eb ssh
@@ -304,17 +286,17 @@ php artisan db:seed
 
 ### 7. Custom Domain + HTTPS
 
-1. Buka EB environment → **Configuration** → **Load Balancer** → tambah HTTPS listener (port 443)
-2. Upload SSL certificate via **AWS Certificate Manager** (ACM) - request certificate untuk `sso.yado.my.id`
+1. Open EB environment → **Configuration** → **Load Balancer** → add HTTPS listener (port 443)
+2. Upload SSL certificate via **AWS Certificate Manager** (ACM) — request certificate for `sso.yado.my.id`
 3. Cloudflare DNS: CNAME `sso` → EB environment URL
 
 ---
 
-## Update (Kedua Cara)
+## Updates (Both Methods)
 
 ### EC2
 
-**Dari lokal** (tanpa perlu SSH manual - butuh `SERVER_HOST` di `.env`):
+**From local** (without manual SSH — requires `SERVER_HOST` in `.env`):
 
 ```bash
 make remote-update
@@ -323,15 +305,15 @@ make remote-update
 **Manual via SSH**:
 
 ```bash
-# SSH ke server
+# SSH into server
 make ssh
-# atau: ssh -i your-key.pem ubuntu@<IP>
+# or: ssh -i your-key.pem ubuntu@<IP>
 
-# Di dalam server:
+# Inside server:
 cd /var/www/sso
-bash scripts/update.sh   # sama dengan: make update
+bash scripts/update.sh   # same as: make update
 
-# Jika ada perubahan assets:
+# If assets changed:
 npm run build
 sudo systemctl reload nginx
 ```
@@ -346,7 +328,7 @@ eb deploy
 
 ## Make Commands (EC2)
 
-Tambahkan variabel berikut ke `.env` lokal untuk enable remote commands:
+Add the following variables to local `.env` to enable remote commands:
 
 ```env
 SERVER_HOST=<elastic-ip-ec2>
@@ -355,23 +337,23 @@ SERVER_USER=ubuntu
 SERVER_PATH=/var/www/sso
 ```
 
-| Command | Keterangan |
-|---------|------------|
-| `make ssh` | SSH ke server |
-| `make remote-deploy` | First-time deploy dari lokal via SSH |
-| `make remote-update` | Pull latest + rebuild dari lokal via SSH |
-| `make deploy` | First-time deploy (dijalankan **di dalam** server) |
-| `make update` | Pull latest + rebuild (dijalankan **di dalam** server) |
+| Command | Description |
+|---------|-------------|
+| `make ssh` | SSH to server |
+| `make remote-deploy` | First-time deploy from local via SSH |
+| `make remote-update` | Pull latest + rebuild from local via SSH |
+| `make deploy` | First-time deploy (run **inside** server) |
+| `make update` | Pull latest + rebuild (run **inside** server) |
 
 ---
 
-## Opsional: RDS sebagai Database di EC2
+## Optional: RDS as EC2 Database
 
-Kalau mau PostgreSQL di server terpisah (lebih production-grade dari Postgres lokal):
+To run PostgreSQL on a dedicated managed server (more production-grade than local Postgres):
 
 1. AWS Console → RDS → Create database → PostgreSQL 16
-2. **VPC Security Group**: izinkan koneksi dari EC2 Security Group ke port 5432
-3. Update `.env` di EC2:
+2. **VPC Security Group**: allow inbound connections from EC2 Security Group to port 5432
+3. Update `.env` on EC2:
    ```env
    DB_HOST=<rds-endpoint>
    DB_READ_HOST=<rds-endpoint>
@@ -380,32 +362,32 @@ Kalau mau PostgreSQL di server terpisah (lebih production-grade dari Postgres lo
 
 ---
 
-## Checklist Post-Deploy
+## Post-Deploy Checklist
 
-- [ ] `https://sso.yado.my.id` accessible, tampil landing page
-- [ ] Login superadmin berhasil
-- [ ] `GET /api/user` dengan token valid → return JSON profil
-- [ ] Create OAuth client di dashboard → Quick Start panel muncul
-- [ ] Forgot password → email terkirim (Resend domain harus sudah verified)
-- [ ] SSL aktif, tidak ada mixed content warning
-- [ ] `APP_DEBUG=false` - error tidak expose stack trace ke browser
-- [ ] `storage/` dan `bootstrap/cache/` writable oleh `www-data`
+- [ ] `https://sso.yado.my.id` accessible, landing page renders
+- [ ] Superadmin login successful
+- [ ] `GET /api/user` with valid token → returns profile JSON
+- [ ] Create OAuth client in dashboard → Quick Start panel appears
+- [ ] Forgot password → email sent (Resend domain must be verified)
+- [ ] SSL active, no mixed content warnings
+- [ ] `APP_DEBUG=false` — errors do not expose stack trace to browser
+- [ ] `storage/` and `bootstrap/cache/` writable by `www-data`
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solusi |
-|---------|--------|
+| Problem | Solution |
+|---------|----------|
 | 500 error | `tail -f /var/www/sso/storage/logs/laravel.log` |
 | 403 Forbidden | `sudo chown -R www-data:www-data /var/www/sso/storage /var/www/sso/bootstrap/cache` |
-| DB connection failed | Cek `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD` di `.env` - jika RDS, cek Security Group |
+| DB connection failed | Check `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD` in `.env` — if RDS, check Security Group |
 | Passport keys error | `php artisan passport:install --force` |
-| Assets 404 | `npm run build` belum dijalankan |
-| HTTPS redirect loop | Di Cloudflare SSL/TLS mode pastikan **Full (strict)**, bukan Flexible |
-| Session tidak persist | `SESSION_DRIVER=database` dan `php artisan session:table && php artisan migrate` |
-| CSS/JS tidak load | Pastikan `ASSET_URL` di `.env` sama dengan URL yang diakses (http vs https, domain vs IP) |
-| `composer install` gagal (PHP version) | Symfony 8.x butuh PHP >=8.4.1 - install PHP 8.4 dari ondrej PPA |
-| `psql: FATAL: password authentication failed for user postgres` | Set/reset password via `sudo -u postgres psql` lalu `ALTER USER postgres WITH PASSWORD '...';`, dan pastikan `DB_PASSWORD` di `.env` sama |
-| `config:cache` Permission denied | Jalankan sebagai www-data: `sudo -u www-data php artisan config:cache` |
-| Cloudflare 522 | EC2 Security Group belum allow port 80/443 inbound dari 0.0.0.0/0 |
+| Assets 404 | `npm run build` has not been run |
+| HTTPS redirect loop | In Cloudflare SSL/TLS mode ensure **Full (strict)**, not Flexible |
+| Session does not persist | `SESSION_DRIVER=database` and `php artisan session:table && php artisan migrate` |
+| CSS/JS fails to load | Ensure `ASSET_URL` in `.env` matches accessed URL (http vs https, domain vs IP) |
+| `composer install` fails (PHP version) | Symfony 8.x requires PHP >=8.4.1 — install PHP 8.4 from ondrej PPA |
+| `psql: FATAL: password authentication failed for user postgres` | Set/reset password via `sudo -u postgres psql` then `ALTER USER postgres WITH PASSWORD '...';`, ensure `DB_PASSWORD` in `.env` matches |
+| `config:cache` Permission denied | Run as www-data: `sudo -u www-data php artisan config:cache` |
+| Cloudflare 522 | EC2 Security Group does not allow port 80/443 inbound from 0.0.0.0/0 |

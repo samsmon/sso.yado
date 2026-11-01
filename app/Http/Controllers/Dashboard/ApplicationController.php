@@ -85,7 +85,7 @@ class ApplicationController extends Controller
         $nameTaken = $others->contains(fn (Client $client) => $client->name === $data['name']);
 
         if ($nameTaken) {
-            return ['name' => 'Nama aplikasi sudah dipakai.'];
+            return ['name' => 'Application name is already in use.'];
         }
 
         $redirectTaken = $others->contains(
@@ -93,7 +93,7 @@ class ApplicationController extends Controller
         );
 
         if ($redirectTaken) {
-            return ['redirect_uri' => 'Redirect URI sudah dipakai aplikasi lain.'];
+            return ['redirect_uri' => 'Redirect URI is already used by another application.'];
         }
 
         return null;
@@ -103,7 +103,7 @@ class ApplicationController extends Controller
     {
         $this->auditLog->record(
             'dashboard.application_secret_revealed',
-            "Client secret aplikasi \"{$application->name}\" dilihat",
+            "Client secret of application \"{$application->name}\" viewed",
         );
 
         return response()->json(['secret' => $application->secret_encrypted]);

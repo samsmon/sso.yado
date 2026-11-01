@@ -1,9 +1,9 @@
-# TASK-016: Register - Full Name Opsional (Fallback ke Username)
+# TASK-016: Register - Optional Full Name (Fallback to Username)
 
 Status: Done
 Priority: Low
 Created: 2026-07-20 21:30
-Request: Ubah field "name" di form register menjadi opsional. Jika user tidak mengisi full name, sistem otomatis menggunakan username sebagai name. Perubahan kecil di validasi dan service layer.
+Request: Make the "name" field in the registration form optional. If users do not provide a full name, the system automatically uses their username as their display name. Minor adjustment in validation and service layers.
 
 Depends on: TASK-003
 
@@ -11,10 +11,10 @@ Depends on: TASK-003
 
 ## DEV Response
 
-- [x] `RegisterController`: ubah validasi `name` dari `required` → `nullable|string|max:255` - `app/Http/Controllers/Auth/RegisterController.php:24`
-- [x] `RegisterService`: tambah logic `filled($data['name'] ?? null) ? $data['name'] : $data['username']` - `app/Services/Auth/RegisterService.php:16`
-- [x] `resources/views/auth/register.blade.php`: label "Full Name" + badge `<span>` "opsional" (pure Tailwind), placeholder "Kosongkan untuk pakai username"
-- [x] Sekalian: redirect post-register ke `/account` (user) atau `/dashboard` (superadmin), konsisten dengan post-login - `RegisterController:32-35`
+- [x] `RegisterController`: change `name` validation from `required` -> `nullable|string|max:255` - `app/Http/Controllers/Auth/RegisterController.php:24`
+- [x] `RegisterService`: add fallback logic `filled($data['name'] ?? null) ? $data['name'] : $data['username']` - `app/Services/Auth/RegisterService.php:16`
+- [x] `resources/views/auth/register.blade.php`: label "Full Name" + `<span>` badge "optional", placeholder "Leave blank to use username"
+- [x] Also: redirect post-registration to `/account` (user) or `/dashboard` (superadmin), matching post-login behavior - `RegisterController:32-35`
 
 ---
 
@@ -22,11 +22,11 @@ Depends on: TASK-003
 
 > **Method**: Static code review.
 
-- [x] Register dengan full name diisi → `filled($data['name'] ?? null)` true → simpan `$data['name']` ✓ (`RegisterService:16`)
-- [x] Register dengan full name kosong (`name=''`) → `filled('')` false → fallback ke `$data['username']` ✓
-- [x] Register dengan full name hanya spasi → `filled('   ')` false (Laravel `blank()` menganggap whitespace-only sebagai blank) → fallback ke username ✓
-- [x] Validasi lain tidak terpengaruh - `nullable` hanya mengubah `name`, aturan username/email/password tidak berubah ✓
-- [x] View: label "Full Name" + badge "opsional" + placeholder "Kosongkan untuk pakai username" ✓ (`register.blade.php:12-18`)
-- [x] Redirect post-register: `route('account.show')` atau `route('dashboard.index')` untuk superadmin ✓ (`RegisterController:36-40`)
+- [x] Registration with full name provided -> `filled($data['name'] ?? null)` true -> persists `$data['name']` (`RegisterService:16`)
+- [x] Registration with empty full name (`name=''`) -> `filled('')` false -> falls back to `$data['username']`
+- [x] Registration with whitespace-only full name -> `filled('   ')` false (Laravel `blank()` treats whitespace-only as blank) -> falls back to username
+- [x] Other validation rules unaffected - `nullable` only alters `name`, rules for username/email/password remain unchanged
+- [x] View: label "Full Name" + badge "optional" + placeholder "Leave blank to use username" (`register.blade.php:12-18`)
+- [x] Post-registration redirect: `route('account.show')` or `route('dashboard.index')` for superadmin (`RegisterController:36-40`)
 
 **Status: Done**

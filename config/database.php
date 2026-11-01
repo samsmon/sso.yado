@@ -85,8 +85,8 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
-        // Dipertahankan khusus untuk migrasi data satu kali dari MySQL lama ke Postgres
-        // (lihat `php artisan db:migrate-to-pgsql`) - bukan connection aktif aplikasi.
+        // Kept solely for a one-time data migration from the old MySQL to Postgres
+        // (see `php artisan db:migrate-to-pgsql`) - not an active application connection.
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('MYSQL_LEGACY_URL'),

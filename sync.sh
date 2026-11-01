@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync tech stack dari docs/SRS.md ke section STACK_START..STACK_END di .claude/CLAUDE.md
+# Sync the tech stack from docs/SRS.md to the STACK_START..STACK_END section in .claude/CLAUDE.md
 
 set -euo pipefail
 
@@ -20,10 +20,10 @@ error() { echo -e "${RED}[sync error]${NC} $1" | tee -a "$LOG_FILE"; exit 1; }
 mkdir -p "$LOG_DIR"
 echo "--- sync $(date '+%Y-%m-%d %H:%M:%S') ---" >> "$LOG_FILE"
 
-[ -f "$SRS" ] || error "$SRS tidak ditemukan."
-[ -f "$CLAUDE" ] || error "$CLAUDE tidak ditemukan."
+[ -f "$SRS" ] || error "$SRS not found."
+[ -f "$CLAUDE" ] || error "$CLAUDE not found."
 
-# Extract Tech Stack table dari SRS.md (kolom kedua, skip header dan separator)
+# Extract the Tech Stack table from SRS.md (second column, skip the header and separator)
 STACK=$(awk '/^## Tech Stack/{found=1; next} found && /^\|/{
     if ($0 ~ /^[|][-]+/) next;
     if ($0 ~ /Layer.*Choice/) next;
@@ -33,7 +33,7 @@ STACK=$(awk '/^## Tech Stack/{found=1; next} found && /^\|/{
 } found && /^---/{exit}' "$SRS")
 
 if [ -z "$STACK" ]; then
-    warn "Tidak ada Tech Stack table yang ditemukan di $SRS. CLAUDE.md tidak diubah."
+    warn "No Tech Stack table found in $SRS. CLAUDE.md was not changed."
     exit 0
 fi
 
@@ -42,6 +42,6 @@ NEW_BLOCK="<!-- STACK_START -->\n## Stack (auto-synced from SRS.md)\n\n$STACK\n\
 
 perl -i -0pe "s|<!-- STACK_START -->.*?<!-- STACK_END -->|$NEW_BLOCK|s" "$CLAUDE"
 
-log "Stack berhasil di-sync ke $CLAUDE"
-log "Stack yang di-sync:"
+log "Stack synced to $CLAUDE successfully"
+log "Synced stack:"
 echo "$STACK" | while IFS= read -r line; do log "  $line"; done

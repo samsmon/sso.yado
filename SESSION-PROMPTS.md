@@ -1,6 +1,6 @@
 # Session Opening Prompts
 
-Copy paste prompt di bawah sesuai session yang mau dibuka di Claude Code.
+Copy and paste the prompt below that matches the session you want to open in Claude Code.
 
 ---
 
@@ -201,4 +201,4 @@ Session keywords:
 | ship it | Execute | Final, no more changes |
 | skip | Control | Skip this part, move on |
 | hold | Control | Stop, wait for next instruction |
-| undo | Control | Revert last change (PM dan DEV only) |
+| undo | Control | Revert last change (PM and DEV only) |

@@ -12,13 +12,13 @@ class ChangePasswordAction
     {
         if (! Hash::check($currentPassword, $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['Password saat ini tidak sesuai.'],
+                'current_password' => ['The current password is incorrect.'],
             ]);
         }
 
         if (Hash::check($newPassword, $user->password)) {
             throw ValidationException::withMessages([
-                'new_password' => ['Password baru tidak boleh sama dengan password saat ini.'],
+                'new_password' => ['The new password must not be the same as the current password.'],
             ]);
         }
 

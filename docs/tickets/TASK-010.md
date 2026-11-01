@@ -3,18 +3,18 @@
 Status: Done
 Priority: Medium
 Created: 2026-07-20 21:00
-Request: Buat halaman publik di root URL (/) yang menjelaskan SSO Engine yado.my.id. Halaman ini yang pertama dilihat visitor - bukan form login, bukan dashboard. Harus accessible tanpa login. Tautan ke /login dan /register.
+Request: Create a public landing page at root URL (/) explaining the SSO Engine for yado.my.id. This is the first page visitors see — not a login form or dashboard. Must be accessible without authentication, with links to /login and /register.
 
 ---
 
 ## DEV Response
 
-- [x] Route `GET /` di `routes/web.php:17` - tanpa middleware auth, accessible publik
-- [x] `HomeController::index()` - redirect authenticated user (superadmin → `dashboard.index`, user → `account.show`), guest → return view `home` - `app/Http/Controllers/HomeController.php`
-- [x] `resources/views/home.blade.php` - extends `layouts.public`, hero + 4 feature cards (SSO, OAuth2+PKCE, Self-service register, Secure Token)
-- [x] `resources/views/layouts/public.blade.php` - base layout pure Tailwind + Alpine.js via Vite, navbar conditional (Dashboard/My Account/Sign Out jika login, Sign In/Register jika guest)
-- [x] CTA conditional: jika login sebagai superadmin → "Buka Dashboard", jika login user biasa → "Lihat Akun Saya", jika guest → "Sign In" + "Daftar Sekarang"
-- [x] Jika user sudah login → redirect ke `account.show` (user) atau `dashboard.index` (superadmin) - fixed via BUG-004, `HomeController.php`
+- [x] Route `GET /` in `routes/web.php:17` - no auth middleware, publicly accessible
+- [x] `HomeController::index()` - redirect authenticated users (superadmin -> `dashboard.index`, user -> `account.show`), guest -> return view `home` - `app/Http/Controllers/HomeController.php`
+- [x] `resources/views/home.blade.php` - extends `layouts.public`, hero + 4 feature cards (SSO, OAuth2+PKCE, Self-service registration, Secure Token)
+- [x] `resources/views/layouts/public.blade.php` - base layout in pure Tailwind + Alpine.js via Vite, conditional navbar (Dashboard/My Account/Sign Out if logged in, Sign In/Register if guest)
+- [x] Conditional CTAs: superadmin -> "Open Dashboard", standard user -> "View My Account", guest -> "Sign In" + "Register Now"
+- [x] Authenticated users redirect to `account.show` (user) or `dashboard.index` (superadmin) - fixed via BUG-004, `HomeController.php`
 
 ---
 
@@ -22,12 +22,12 @@ Request: Buat halaman publik di root URL (/) yang menjelaskan SSO Engine yado.my
 
 > **Method**: Static code review.
 
-- [x] GET `/` tanpa login → landing page tampil, tidak redirect ✓ (`routes/web.php:17`)
-- [x] GET `/` saat login sebagai user → redirect ke `/account` ✓ - fixed via BUG-004
-- [x] GET `/` saat login sebagai superadmin → redirect ke `/dashboard` ✓ - fixed via BUG-004
-- [x] Tombol "Login" → `route('login')` ✓ (`home.blade.php`)
-- [x] Tombol "Daftar Sekarang" → `route('register')` ✓ (`home.blade.php`)
-- [x] Tidak ada auth middleware pada route `/` ✓
-- [x] Tidak ada data sensitif di halaman ✓
+- [x] GET `/` without authentication -> landing page displays, no redirect (`routes/web.php:17`)
+- [x] GET `/` while authenticated as user -> redirect to `/account` - fixed via BUG-004
+- [x] GET `/` while authenticated as superadmin -> redirect to `/dashboard` - fixed via BUG-004
+- [x] Button "Sign In" -> `route('login')` (`home.blade.php`)
+- [x] Button "Register Now" -> `route('register')` (`home.blade.php`)
+- [x] No auth middleware on route `/`
+- [x] No sensitive data on page
 
 **Status: Done**

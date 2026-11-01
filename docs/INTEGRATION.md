@@ -1,37 +1,37 @@
 # Integration Guide - SSO Engine (sso.yado.my.id)
 
-Panduan untuk developer yang ingin mengintegrasikan aplikasi ke SSO Engine yado.my.id sebagai OAuth2 client.
+A guide for developers who want to integrate an app with the yado.my.id SSO Engine as an OAuth2 client.
 
 ---
 
-## Apa itu SSO Engine?
+## What is SSO Engine?
 
-`sso.yado.my.id` adalah **Central Identity Provider** untuk ekosistem Yado.my.id. Semua aplikasi (Malas, Scribe, dll.) mendelegasikan autentikasi ke sini - user cukup login sekali dan bisa akses semua app tanpa login ulang.
+`sso.yado.my.id` is the **Central Identity Provider** for the Yado.my.id ecosystem. All apps (Malas, Scribe, etc.) delegate authentication here - users log in once and can access every app without logging in again.
 
-Protokol: **OAuth2 Authorization Code + PKCE** (RFC 6749 + RFC 7636). PKCE wajib - tidak ada fallback.
+Protocol: **OAuth2 Authorization Code + PKCE** (RFC 6749 + RFC 7636). PKCE is mandatory - there is no fallback.
 
 ---
 
-## Dua Cara Integrasi
+## Two Ways to Integrate
 
-| Cara | Cocok untuk | Estimasi waktu |
+| Option | Best for | Estimated time |
 |------|-------------|----------------|
-| [Cara A - Lempar ke AI](#cara-a--lempar-ke-ai) | Project baru atau yang mau cepat | 15-30 menit |
-| [Cara B - Manual](#cara-b--manual-step-by-step) | Kamu mau paham setiap langkahnya | 1-2 jam |
+| [Option A - Hand it to an AI](#option-a---hand-it-to-an-ai) | New projects or anyone in a hurry | 15-30 minutes |
+| [Option B - Manual](#option-b---manual-step-by-step) | You want to understand every step | 1-2 hours |
 
 ---
 
-## Prasyarat (wajib untuk kedua cara)
+## Prerequisites (required for both options)
 
-Sebelum mulai, **minta superadmin** daftarkan aplikasimu di `sso.yado.my.id/dashboard/applications`:
+Before starting, **ask a superadmin** to register your app at `sso.yado.my.id/dashboard/applications`:
 
-1. Superadmin buka dashboard → **Add Application**
-2. Isi nama app dan **Redirect URI** (contoh: `https://malas.yado.my.id/auth/callback`)
-   - Wajib HTTPS (kecuali `localhost` untuk development)
-   - Redirect URI harus sudah pasti - ini di-whitelist ketat oleh SSO
-3. Klik Create → superadmin dapat **Quick Start panel** berisi credentials siap copy
+1. The superadmin opens the dashboard → **Add Application**
+2. Fill in the app name and **Redirect URI** (example: `https://malas.yado.my.id/auth/callback`)
+      - HTTPS is required (except `localhost` for development)
+      - The Redirect URI must be final - SSO whitelists it strictly
+3. Click Create → the superadmin gets a **Quick Start panel** with ready-to-copy credentials
 
-Kamu akan menerima dari superadmin:
+You will receive from the superadmin:
 ```env
 SSO_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 SSO_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -39,66 +39,66 @@ SSO_REDIRECT_URI=https://yourapp.yado.my.id/auth/callback
 SSO_BASE_URL=https://sso.yado.my.id
 ```
 
-> **Penting**: `client_secret` hanya ditampilkan sekali saat create. Jika hilang, superadmin harus generate ulang.
+> **Important**: `client_secret` is only shown once at creation. If it is lost, the superadmin must regenerate it.
 
 ---
 
-## Cara A - Lempar ke AI
+## Option A - Hand It to an AI
 
-Cara paling cepat. Cocok untuk Laravel, Next.js, atau stack apapun yang AI kamu kenal.
+The fastest way. Works for Laravel, Next.js, or any stack your AI knows.
 
-**Langkah:**
+**Steps:**
 
-1. Dapatkan credentials dari superadmin (lihat Prasyarat di atas)
-2. Buka AI coding assistant (Claude, Cursor, Copilot, dll.)
-3. Paste prompt berikut:
+1. Get the credentials from the superadmin (see Prerequisites above)
+2. Open an AI coding assistant (Claude, Cursor, Copilot, etc.)
+3. Paste the following prompt:
 
 ```
-Integrasikan SSO Yado.my.id ke project ini menggunakan panduan berikut:
-[link ke docs/AI_INTEGRATION.md di repo SSO]
+Integrate Yado.my.id SSO into this project using the following guide:
+[link to docs/AI_INTEGRATION.md in the SSO repo]
 
-Credentials yang sudah tersedia di .env:
+Credentials already available in .env:
 SSO_CLIENT_ID=xxx
 SSO_CLIENT_SECRET=xxx
 SSO_REDIRECT_URI=xxx
 SSO_BASE_URL=https://sso.yado.my.id
 ```
 
-4. AI akan mengimplementasikan:
-   - Tabel `users` lokal (tanpa password, dengan kolom `sso_id`)
-   - Route `/auth/redirect` dan `/auth/callback`
-   - PKCE generation dan token exchange
-   - Sync profil user dari SSO ke DB lokal
-   - Middleware proteksi route
+4. The AI will implement:
+      - A local `users` table (no password, with an `sso_id` column)
+      - The `/auth/redirect` and `/auth/callback` routes
+      - PKCE generation and token exchange
+      - Syncing the user profile from SSO to the local DB
+      - Route protection middleware
 
-5. Test: akses halaman yang diproteksi → seharusnya redirect ke SSO → login → balik ke app
+5. Test: visit a protected page → it should redirect to SSO → log in → return to the app
 
-File referensi untuk AI: [`docs/AI_INTEGRATION.md`](AI_INTEGRATION.md)
+Reference file for the AI: [`docs/AI_INTEGRATION.md`](AI_INTEGRATION.md)
 
 ---
 
-## Cara B - Manual (Step by Step)
+## Option B - Manual (Step by Step)
 
-### Overview Flow
+### Flow Overview
 
 ```
-User buka app
-  → belum ada session → redirect ke /auth/redirect
-  → redirect ke sso.yado.my.id/oauth/authorize
-  → [session SSO aktif] → silent, langsung dapat code
-  → [belum login SSO] → tampil halaman login SSO → login
-  → redirect ke /auth/callback?code=xxx&state=xxx
-  → app tukar code + code_verifier → dapat access_token + refresh_token
-  → app hit GET /api/user → dapat profil user
-  → upsert ke tabel users lokal (berdasarkan sso_id)
-  → buat session lokal → user masuk
+User opens the app
+    → no session yet → redirect to /auth/redirect
+    → redirect to sso.yado.my.id/oauth/authorize
+    → [SSO session active] → silent, gets a code immediately
+    → [not logged in to SSO] → SSO login page is shown → log in
+    → redirect to /auth/callback?code=xxx&state=xxx
+    → app exchanges code + code_verifier → gets access_token + refresh_token
+    → app hits GET /api/user → gets the user profile
+    → upsert into the local users table (by sso_id)
+    → create a local session → user is in
 ```
 
 ---
 
 ### Step 1 - Setup Environment
 
-Tambahkan ke `.env`:
+Add to `.env`:
 
 ```env
 SSO_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -107,7 +107,7 @@ SSO_REDIRECT_URI=https://yourapp.yado.my.id/auth/callback
 SSO_BASE_URL=https://sso.yado.my.id
 ```
 
-Buat `config/sso.php`:
+Create `config/sso.php`:
 
 ```php
 return [
@@ -120,11 +120,11 @@ return [
 
 ---
 
-### Step 2 - Siapkan Tabel Users
+### Step 2 - Prepare the Users Table
 
-App kamu butuh tabel `users` dengan kolom dari SSO. **Tidak perlu kolom password** - auth dihandle SSO.
+Your app needs a `users` table with the columns from SSO. **No password column is needed** - auth is handled by SSO.
 
-Jika belum ada tabel `users`:
+If there is no `users` table yet:
 
 ```php
 Schema::create('users', function (Blueprint $table) {
@@ -140,7 +140,7 @@ Schema::create('users', function (Blueprint $table) {
 });
 ```
 
-Jika tabel `users` sudah ada (misal dari Laravel default), tambahkan kolom yang kurang:
+If a `users` table already exists (e.g. from Laravel's default), add the missing columns:
 
 ```php
 Schema::table('users', function (Blueprint $table) {
@@ -148,7 +148,7 @@ Schema::table('users', function (Blueprint $table) {
     $table->string('username')->after('name');
     $table->string('avatar')->nullable()->after('email');
     $table->string('role')->default('user')->after('avatar');
-    $table->dropColumn('password'); // hapus jika tidak ada auth lokal
+        $table->dropColumn('password'); // remove if there is no local auth
 });
 ```
 
@@ -156,24 +156,24 @@ Schema::table('users', function (Blueprint $table) {
 
 ### Step 3 - Generate PKCE
 
-PKCE wajib. Buat utility atau langsung inline di controller.
+PKCE is mandatory. Create a utility or put it inline in the controller.
 
 ```php
-// Generate code_verifier (random string 43-128 karakter)
-$codeVerifier = bin2hex(random_bytes(32)); // 64 karakter hex
+// Generate code_verifier (random string of 43-128 characters)
+$codeVerifier = bin2hex(random_bytes(32)); // 64 hex characters
 
-// Derive code_challenge (SHA-256 dari verifier, base64url encoded)
+// Derive code_challenge (SHA-256 of the verifier, base64url encoded)
 $codeChallenge = rtrim(
     strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'),
     '='
 );
 ```
 
-**Simpan `code_verifier` di server-side session** - dibutuhkan saat tukar token.
+**Store `code_verifier` in the server-side session** - it is needed when exchanging the token.
 
 ---
 
-### Step 4 - Redirect ke SSO
+### Step 4 - Redirect to SSO
 
 ```php
 // GET /auth/redirect
@@ -184,7 +184,7 @@ public function redirect(): RedirectResponse
         strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'),
         '='
     );
-    $state = bin2hex(random_bytes(16)); // untuk CSRF protection
+        $state = bin2hex(random_bytes(16)); // for CSRF protection
 
     session(['sso_code_verifier' => $codeVerifier, 'sso_state' => $state]);
 
@@ -202,31 +202,31 @@ public function redirect(): RedirectResponse
 }
 ```
 
-Jika user sudah punya session aktif di SSO, mereka **tidak akan melihat halaman login maupun consent screen** — langsung di-redirect balik dengan auth code (silent SSO otomatis untuk internal ecosystem clients).
+If the user already has an active session at SSO, they **will not see the login page or the consent screen** - they are redirected straight back with an auth code (automatic silent SSO for internal ecosystem clients).
 
-#### Opsional: Force Re-Authentication / Tambah Akun (`prompt=login`)
-Jika aplikasi kamu mendukung multi-akun ("Tambah Akun") atau ingin memaksa pengguna memasukkan kredensial baru meskipun sesi SSO sedang aktif, sertakan parameter `prompt=login`:
+#### Optional: Force Re-Authentication / Add Account (`prompt=login`)
+If your app supports multiple accounts ("Add Account") or wants to force the user to enter new credentials even though the SSO session is active, include the `prompt=login` parameter:
 
 ```php
 $params = [
-    // ... parameter OAuth reguler ...
+        // ... regular OAuth parameters ...
     'prompt' => 'login',
 ];
 ```
-Ketika parameter ini dikirim, SSO akan otomatis memutus sesi browser aktif di SSO dan menampilkan form login, lalu meneruskan otentikasi akun baru tersebut kembali ke `redirect_uri` aplikasimu.
+When this parameter is sent, SSO automatically terminates the active browser session at SSO and shows the login form, then passes the authentication of that new account back to your app's `redirect_uri`.
 
 ---
 
-### Step 5 - Handle Callback
+### Step 5 - Handle the Callback
 
 ```php
 // GET /auth/callback
 public function callback(Request $request): RedirectResponse
 {
-    // Validasi state untuk cegah CSRF
+        // Validate state to prevent CSRF
     abort_if($request->state !== session('sso_state'), 403, 'Invalid state');
 
-    // Tukar auth code dengan token (server-to-server)
+        // Exchange the auth code for tokens (server-to-server)
     $tokens = Http::asForm()->post(config('sso.base_url') . '/oauth/token', [
         'grant_type'    => 'authorization_code',
         'code'          => $request->code,
@@ -236,12 +236,12 @@ public function callback(Request $request): RedirectResponse
         'code_verifier' => session('sso_code_verifier'),
     ])->json();
 
-    // Ambil profil user
+        // Fetch the user profile
     $profile = Http::withToken($tokens['access_token'])
         ->get(config('sso.base_url') . '/api/user')
         ->json();
 
-    // Upsert ke tabel users lokal
+        // Upsert into the local users table
     $user = User::updateOrCreate(
         ['sso_id' => $profile['id']],
         [
@@ -253,10 +253,10 @@ public function callback(Request $request): RedirectResponse
         ]
     );
 
-    // Bersihkan session PKCE
+        // Clear the PKCE session
     session()->forget(['sso_code_verifier', 'sso_state']);
 
-    // Simpan token untuk refresh nanti
+        // Store tokens for refreshing later
     session([
         'sso_access_token'  => $tokens['access_token'],
         'sso_refresh_token' => $tokens['refresh_token'],
@@ -268,11 +268,11 @@ public function callback(Request $request): RedirectResponse
 }
 ```
 
-> **Penting**: Token exchange harus dilakukan di server-side. Jangan expose `client_secret` ke browser.
+> **Important**: Token exchange must happen server-side. Never expose `client_secret` to the browser.
 
 ---
 
-### Step 6 - Routes dan Middleware
+### Step 6 - Routes and Middleware
 
 ```php
 // routes/web.php
@@ -282,11 +282,11 @@ Route::post('/auth/logout', [SsoController::class, 'logout'])->name('sso.logout'
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', ...);
-    // semua route yang butuh login
+        // all routes that require login
 });
 ```
 
-Arahkan unauthenticated redirect ke SSO (bukan ke `/login` lokal):
+Point unauthenticated redirects to SSO (not to a local `/login`):
 
 ```php
 // bootstrap/app.php
@@ -303,9 +303,9 @@ Arahkan unauthenticated redirect ke SSO (bukan ke `/login` lokal):
 
 ### Step 7 - Logout
 
-Logout **dua tahap** wajib dilakukan:
-1. Hapus session lokal di app kamu
-2. Redirect ke SSO logout - kalau dilewati, SSO session masih aktif dan user akan auto-login kembali tanpa diminta password
+Two-step logout is mandatory:
+1. Delete the local session in your app
+2. Redirect to SSO logout - if skipped, the SSO session stays active and the user will be logged back in automatically without being asked for a password
 
 ```php
 public function logout(Request $request): RedirectResponse
@@ -314,20 +314,20 @@ public function logout(Request $request): RedirectResponse
     $request->session()->invalidate();
     $request->session()->regenerateToken();
 
-    // Wajib: redirect ke SSO logout dengan redirect_uri agar session SSO juga hancur.
-    // Tanpa ini, klik login lagi akan auto-login tanpa minta password.
+        // Required: redirect to SSO logout with redirect_uri so the SSO session is destroyed too.
+        // Without this, clicking login again will auto-login without asking for a password.
     $redirectUri = urlencode(config('sso.redirect_uri_base', url('/')));
     return redirect(config('sso.base_url') . '/logout?redirect_uri=' . $redirectUri);
 }
 ```
 
-> **Penting**: `redirect_uri` harus domain yang terdaftar di SSO sebagai redirect URI client app kamu. SSO hanya akan redirect ke domain yang sudah diwhitelist.
+> **Important**: `redirect_uri` must be a domain registered in SSO as your client app's redirect URI. SSO only redirects to whitelisted domains.
 
 ---
 
-### Step 8 - Refresh Token (Opsional tapi Direkomendasikan)
+### Step 8 - Refresh Token (Optional but Recommended)
 
-Access token expired setelah **60 menit**. Implementasi refresh agar session tidak putus:
+The access token expires after **60 minutes**. Implement refresh so the session does not drop:
 
 ```php
 private function refreshToken(): bool
@@ -346,45 +346,45 @@ private function refreshToken(): bool
     $tokens = $response->json();
     session([
         'sso_access_token'  => $tokens['access_token'],
-        'sso_refresh_token' => $tokens['refresh_token'], // selalu simpan yang baru
+                'sso_refresh_token' => $tokens['refresh_token'], // always store the new one
     ]);
 
     return true;
 }
 ```
 
-Refresh token berlaku **30 hari** dan single-use - setiap refresh menghasilkan token baru.
+The refresh token is valid for **30 days** and is single-use - every refresh produces a new token.
 
 ---
 
-## Data User yang Tersedia
+## Available User Data
 
-Setelah login, `Auth::user()` return model User lokal yang sudah di-sync dari SSO:
+After login, `Auth::user()` returns the local User model already synced from SSO:
 
 ```php
-Auth::user()->sso_id    // ID unik di SSO - gunakan sebagai foreign key antar app
-Auth::user()->name      // Nama lengkap
-Auth::user()->username  // Username unik
+Auth::user()->sso_id    // Unique ID at SSO - use it as the foreign key across apps
+Auth::user()->name      // Full name
+Auth::user()->username  // Unique username
 Auth::user()->email
-Auth::user()->avatar    // URL atau null
-Auth::user()->role      // "user" atau "superadmin"
-Auth::user()->theme     // "system" | "light" | "dark" - preferensi theme user
-Auth::user()->locale    // "id" | "en" | "ja" - preferensi bahasa user
+Auth::user()->avatar    // URL or null
+Auth::user()->role      // "user" or "superadmin"
+Auth::user()->theme     // "system" | "light" | "dark" - the user's theme preference
+Auth::user()->locale    // "id" | "en" | "ja" - the user's language preference
 ```
 
-Data di-sync setiap kali user login. Untuk update profil, user pergi ke `sso.yado.my.id/account`.
+Data is synced every time the user logs in. To update their profile, users go to `sso.yado.my.id/account`.
 
-> **Theme & bahasa cross-app**: SSO cuma nyimpen dan expose preferensi ini - app kamu yang harus baca dan menerapkannya sendiri (SSO tidak bisa styling app lain). Contoh implementasi lengkap ada di [`AI_INTEGRATION.md`](AI_INTEGRATION.md) section "Theme & Bahasa".
+> **Cross-app theme & language**: SSO only stores and exposes these preferences - your app must read and apply them itself (SSO cannot style other apps). A complete implementation example is in [`AI_INTEGRATION.md`](AI_INTEGRATION.md), section "Theme & Language".
 
 ---
 
 ## Scopes
 
-| Scope | Data yang tersedia |
+| Scope | Available data |
 |-------|--------------------|
 | `profile:read` | id, name, username, email, avatar, role |
 
-Gunakan `scope=profile:read` di authorization URL. Scope tambahan akan didefinisikan sesuai kebutuhan ekosistem.
+Use `scope=profile:read` in the authorization URL. Additional scopes will be defined as the ecosystem needs them.
 
 ---
 
@@ -408,81 +408,81 @@ Response 200:
 }
 ```
 
-| Status | Kondisi |
+| Status | Condition |
 |--------|---------|
-| 200 | Token valid, scope cukup |
-| 401 | Token tidak valid, expired, atau user dinonaktifkan |
-| 403 | Token valid tapi scope tidak cukup |
+| 200 | Token valid, scope sufficient |
+| 401 | Token invalid, expired, or user deactivated |
+| 403 | Token valid but scope insufficient |
 
 ### POST /oauth/token
 
-| Parameter | Keterangan |
+| Parameter | Description |
 |-----------|------------|
-| `grant_type` | `authorization_code` atau `refresh_token` |
-| `code` | Auth code dari callback (untuk authorization_code) |
-| `code_verifier` | PKCE verifier yang dihasilkan di Step 3 |
-| `refresh_token` | Refresh token yang disimpan (untuk refresh_token grant) |
-| `client_id` | Dari `.env` |
-| `client_secret` | Dari `.env` - jangan expose ke frontend |
-| `redirect_uri` | Harus sama persis dengan yang didaftarkan |
+| `grant_type` | `authorization_code` or `refresh_token` |
+| `code` | Auth code from the callback (for authorization_code) |
+| `code_verifier` | The PKCE verifier produced in Step 3 |
+| `refresh_token` | The stored refresh token (for the refresh_token grant) |
+| `client_id` | From `.env` |
+| `client_secret` | From `.env` - do not expose it to the frontend |
+| `redirect_uri` | Must match exactly what was registered |
 
 ---
 
-## Testing Lokal (SSO + Client App di 1 Device)
+## Local Testing (SSO + Client App on 1 Device)
 
-Ini setup paling umum dan paling sering bikin bingung - SSO dan app kamu jalan bareng di laptop yang sama.
+This is the most common setup and the one that confuses people most - SSO and your app run together on the same laptop.
 
-1. **Port harus beda.** `php artisan serve` default ke port 8000. Kalau SSO sudah pakai 8000, jalankan client app di port lain:
+1. **Ports must differ.** `php artisan serve` defaults to port 8000. If SSO already uses 8000, run the client app on another port:
    ```bash
-   # Terminal 1 - SSO Engine
+      # Terminal 1 - SSO Engine
    cd sso.yado && php artisan serve --port=8000
 
-   # Terminal 2 - client app kamu
+      # Terminal 2 - your client app
    cd malas-app && php artisan serve --port=8001
    ```
 
-2. **Redirect URI harus persis match** - termasuk port. Kalau didaftarkan `http://localhost:8001/auth/callback` tapi app kamu jalan di port 8002, akan kena `invalid_client` / redirect mismatch.
+2. **The Redirect URI must match exactly** - including the port. If `http://localhost:8001/auth/callback` is registered but your app runs on port 8002, you will hit `invalid_client` / a redirect mismatch.
 
-3. **`APP_URL` di kedua app harus sesuai port masing-masing.** SSO: `APP_URL=http://localhost:8000`, client: `APP_URL=http://localhost:8001`.
+3. **`APP_URL` in both apps must match their own ports.** SSO: `APP_URL=http://localhost:8000`, client: `APP_URL=http://localhost:8001`.
 
-4. **Cookie session tidak akan bentrok** selama `APP_NAME` di kedua app berbeda (Laravel generate nama cookie dari `APP_NAME`, bukan dari port). Kalau kamu clone starter yang sama untuk dua app dan lupa ganti `APP_NAME`, keduanya bisa pakai cookie session yang sama persis dan saling override - pastikan `APP_NAME` unik di tiap `.env`.
+4. **Session cookies will not collide** as long as `APP_NAME` differs between the two apps (Laravel generates the cookie name from `APP_NAME`, not from the port). If you cloned the same starter for both apps and forgot to change `APP_NAME`, both may use the exact same session cookie and override each other - make sure `APP_NAME` is unique in each `.env`.
 
-5. **`SESSION_DOMAIN` biarkan `null`** di kedua app (default). Browser tidak membedakan cookie berdasarkan port jika `Domain` di-set eksplisit ke `localhost` - membiarkan `null` membuat cookie ter-scope otomatis per origin (host + port + scheme).
+5. **Leave `SESSION_DOMAIN` as `null`** in both apps (the default). Browsers do not distinguish cookies by port if `Domain` is explicitly set to `localhost` - leaving it `null` scopes cookies automatically per origin (host + port + scheme).
 
-6. Setelah keduanya jalan, akses client app di `http://localhost:8001` → klik login → harus redirect ke `http://localhost:8000/login` (SSO), bukan error koneksi atau blank page.
+6. Once both are running, open the client app at `http://localhost:8001` → click login → it should redirect to `http://localhost:8000/login` (SSO), not a connection error or a blank page.
 
 ---
 
-## Error Umum
+## Common Errors
 
-| Error | Penyebab | Solusi |
+| Error | Cause | Solution |
 |-------|----------|--------|
-| `invalid_client` | `client_id` atau `client_secret` salah | Cek `.env` |
-| `invalid_grant` | `code_verifier` tidak cocok atau code sudah dipakai | Pastikan `code_verifier` disimpan di server session |
-| `invalid_request` | `code_challenge` tidak ada | PKCE wajib - pastikan `redirect()` generate dan kirim `code_challenge` |
-| 403 Invalid state | `state` di callback tidak cocok | Jangan simpan `state` di cookie/localStorage |
-| 401 dari `/api/user` | Token expired | Implementasi refresh token |
-| 429 | Rate limit tercapai | Tunggu 1 menit, maksimal 5 request/menit |
+| `invalid_client` | Wrong `client_id` or `client_secret` | Check `.env` |
+| `invalid_grant` | `code_verifier` does not match or the code was already used | Make sure `code_verifier` is stored in the server session |
+| `invalid_request` | `code_challenge` is missing | PKCE is mandatory - make sure `redirect()` generates and sends `code_challenge` |
+| 403 Invalid state | `state` in the callback does not match | Do not store `state` in a cookie/localStorage |
+| 401 from `/api/user` | Token expired | Implement refresh token |
+| 429 | Rate limit reached | Wait 1 minute, maximum 5 requests/minute |
 
 ---
 
-## Checklist Integrasi
+## Integration Checklist
 
-- [ ] Terima `client_id`, `client_secret`, `redirect_uri` dari superadmin
-- [ ] Tambah 4 env var ke `.env`
-- [ ] Buat `config/sso.php`
-- [ ] Siapkan tabel `users` dengan kolom `sso_id`, `username`, `avatar`, `role`
-- [ ] Implementasi `SsoController` dengan `redirect()`, `callback()`, `logout()`
-- [ ] Daftarkan routes `/auth/redirect`, `/auth/callback`, `/auth/logout`
-- [ ] Arahkan unauthenticated redirect ke `route('sso.redirect')`
-- [ ] Test: akses protected route → redirect SSO → login → balik ke app ✓
-- [ ] Test: akses lagi setelah login → silent SSO, tidak minta login ulang ✓
-- [ ] Test: logout → session lokal + SSO hancur ✓
+- [ ] Receive `client_id`, `client_secret`, `redirect_uri` from the superadmin
+- [ ] Add 4 env vars to `.env`
+- [ ] Create `config/sso.php`
+- [ ] Prepare the `users` table with the columns `sso_id`, `username`, `avatar`, `role`
+- [ ] Implement `SsoController` with `redirect()`, `callback()`, `logout()`
+- [ ] Register the routes `/auth/redirect`, `/auth/callback`, `/auth/logout`
+- [ ] Point unauthenticated redirects to `route('sso.redirect')`
+- [ ] Test: visit a protected route → redirect to SSO → log in → return to the app ✓
+- [ ] Test: visit again after login → silent SSO, no new login requested ✓
+- [ ] Test: logout → local session + SSO session destroyed ✓
 
 ---
 
-## Referensi
+## References
 
-- [AI Integration Brief](AI_INTEGRATION.md) - untuk integrasi via AI assistant
-- [SRS - API Contract lengkap](SRS.md)
-- [PRD - Arsitektur ekosistem](PRD.md)
+- [AI Integration Brief](AI_INTEGRATION.md) - for integration via an AI assistant
+- [SRS - full API contract](SRS.md)
+- [PRD - ecosystem architecture](PRD.md)

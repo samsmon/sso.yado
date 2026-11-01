@@ -9,9 +9,9 @@ use Throwable;
 class HealthCheckService
 {
     /**
-     * Cek kesehatan service ini buat monitoring eksternal (landing page Yado).
-     * Sengaja cuma query ringan (`SELECT 1`) - cukup buat pastikan koneksi DB hidup,
-     * tanpa bikin endpoint ini jadi lambat/berat.
+     * Checks this service's health for external monitoring (the Yado landing page).
+     * Deliberately only a light query (`SELECT 1`) - enough to confirm the DB connection is alive,
+     * without making this endpoint slow/heavy.
      *
      * @return array{status: string, service: string, timestamp?: string, error?: string}
      */

@@ -1,10 +1,10 @@
-# CLAUDE.md - SSO Engine (yado)
+﻿# CLAUDE.md - SSO Engine (yado)
 
 ## Project Overview
 
-Central Identity Provider untuk ekosistem Yado. Menyediakan autentikasi OAuth2 terpusat dengan PKCE (RFC 7636) sehingga user cukup login sekali untuk mengakses semua aplikasi dalam ekosistem.
+Central Identity Provider for the Yado ecosystem. Provides centralized OAuth2 authentication with PKCE (RFC 7636) so users only log in once to access all applications across the ecosystem.
 
-Frontend dibangun dengan **Svelte 5 + Inertia.js v2 SPA**, didukung GSAP animation dan Tailwind CSS v4 + DaisyUI v5 (tema monokrom murni).
+The frontend is built with **Svelte 5 + Inertia.js v2 SPA**, powered by GSAP animation and Tailwind CSS v4 + DaisyUI v5 (pure monochrome theme).
 
 ## Project Structure
 
@@ -47,12 +47,12 @@ root/
 
 ### Constraints
 
-- **Single Page App**: Frontend menggunakan Svelte 5 via Inertia.js. Navigasi wajib memakai komponen `<Link>` dari `@inertiajs/svelte` (bukan `<a use:inertia>`).
-- **Database Durability**: DILARANG menjalankan `php artisan migrate:fresh` di server/live container. Gunakan selalu `php artisan migrate --force`.
-- Logic **tidak boleh** di Controller. Controller thin - semua logic di Service atau Action class.
-- PSR-12. Type hints wajib di semua method signature.
-- Database: `db_sso`. Read/write split dengan `sticky: true`.
-- Passport mengelola semua endpoint `/oauth/*` - jangan override kecuali ada kebutuhan spesifik.
+- **Single Page App**: The frontend uses Svelte 5 via Inertia.js. Navigation must use the `<Link>` component from `@inertiajs/svelte` (not `<a use:inertia>`).
+- **Database Durability**: NEVER run `php artisan migrate:fresh` on a server or live container. Always use `php artisan migrate --force`.
+- Logic **must not** reside in Controllers. Controllers are thin — all logic belongs in Service or Action classes.
+- PSR-12. Type hints are mandatory on all method signatures.
+- Database: `db_sso`. Read/write split with `sticky: true`.
+- Passport manages all `/oauth/*` endpoints — do not override unless specifically required.
 
 ### Commands
 
@@ -67,18 +67,18 @@ php artisan test
 ### Route Structure
 
 ```php
-// routes/web.php - halaman Blade
+// routes/web.php - Blade / Inertia pages
 Route::get('/login', [LoginController::class, 'show']);
 Route::post('/login', [LoginController::class, 'store']);
 Route::get('/register', [RegisterController::class, 'show']);
 Route::post('/register', [RegisterController::class, 'store']);
 Route::post('/logout', [LogoutController::class, 'destroy']);
 
-// routes/api.php - resource endpoint
+// routes/api.php - resource endpoints
 Route::middleware(['auth:api', 'scope:profile:read'])
     ->get('/user', [UserController::class, 'show']);
 
-// /oauth/* routes - auto-register oleh Passport
+// /oauth/* routes - auto-registered by Passport
 ```
 
 ### Architecture Pattern
@@ -87,16 +87,16 @@ Route::middleware(['auth:api', 'scope:profile:read'])
 Request → Controller → Service/Action → Model → Response
 ```
 
-- `Controller`: validasi request, panggil service, return response
-- `Service`: business logic, boleh inject multiple models/actions
-- `Action`: single-responsibility operation (e.g., `IssueTokenAction`, `RevokeTokenAction`)
-- `Model`: Eloquent model, relasi, scopes - tidak ada business logic
+- `Controller`: validates request, calls service, returns response
+- `Service`: business logic, may inject multiple models/actions
+- `Action`: single-responsibility operation (e.g. `IssueTokenAction`, `RevokeTokenAction`)
+- `Model`: Eloquent model, relations, scopes — no business logic
 
 ### Code Standards
 
 - PSR-12 strict
-- Type hints wajib: parameter dan return type
-- No `var_dump`, no `dd()` di production code
+- Mandatory type hints: parameters and return types
+- No `var_dump`, no `dd()` in production code
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`
 - Method names: camelCase, class names: PascalCase
 
@@ -106,48 +106,48 @@ Request → Controller → Service/Action → Model → Response
 
 ### UI Constraints
 
-- Styling menggunakan **Tailwind CSS** + **daisyUI** (plugin CSS-only, `@plugin 'daisyui'` di `resources/css/app.css`) - bukan pengecualian, ini satu-satunya component library yang diizinkan karena murni class CSS di atas Tailwind, tidak butuh JS framework, kompatibel penuh dengan Blade + Alpine. Pakai komponen daisyUI (`btn`, `input`, `card`, `modal`, `dropdown`, `alert`, `badge`, `navbar`, `menu`, `avatar`, `toggle`, `tabs`, dll.) dan token warna semantiknya (`bg-base-100`, `text-base-content`, `border-base-300`, dst.) alih-alih hardcode `zinc-*`/`dark:` per elemen - token semantik otomatis ganti sesuai `data-theme` di `<html>`, tidak perlu pasangan `dark:` manual lagi untuk komponen baru.
-- Theme daisyUI didefinisikan custom di `resources/css/app.css` (`@plugin 'daisyui/theme'`, dua block: `light` dan `dark`) - jangan pakai theme bawaan daisyUI lain tanpa didiskusikan, supaya brand color (biru) konsisten.
-- Interaktivitas ringan (dropdown, toggle, modal) menggunakan **Alpine.js** - selalu tambahkan `x-transition` (atau varian durasi/opacity-nya) di elemen yang muncul/hilang (`x-show`), jangan biarkan muncul/hilang instan tanpa animasi.
-- Micro-interaction wajib terasa hidup: elemen interaktif (`button`, `a`, `[role="button"]`) otomatis dapat `transition-colors`/`transform` dari `app.css` - manfaatkan (`hover:`, `active:scale-95`, dll.), jangan override jadi instan tanpa alasan.
-- Tidak ada React, Vue, Flux UI, shadcn, MUI, atau framework JS/component library lain selain daisyUI.
-- Tidak ada CDN Tailwind di production - gunakan Vite build.
-- **Dilarang**: icon dekoratif generik yang tidak punya makna fungsional (AI slop icons).
-- Icons: gunakan SVG inline minimal atau Heroicons - hanya icon yang punya makna fungsional.
+- Styling uses **Tailwind CSS** + **daisyUI** (CSS-only plugin, `@plugin 'daisyui'` in `resources/css/app.css`) — this is the sole permitted component library because it consists of pure CSS classes on top of Tailwind, requires no JS framework, and remains fully compatible with Blade + Alpine. Use daisyUI components (`btn`, `input`, `card`, `modal`, `dropdown`, `alert`, `badge`, `navbar`, `menu`, `avatar`, `toggle`, `tabs`, etc.) and its semantic color tokens (`bg-base-100`, `text-base-content`, `border-base-300`, etc.) rather than hardcoding `zinc-*`/`dark:` per element — semantic tokens switch automatically according to `data-theme` on `<html>`, avoiding manual `dark:` pairing for new components.
+- DaisyUI themes are custom-defined in `resources/css/app.css` (`@plugin 'daisyui/theme'`, two blocks: `light` and `dark`) — do not use other default daisyUI themes without discussion, to ensure brand color (blue) remains consistent.
+- Lightweight interactivity (dropdowns, toggles, modals) uses **Alpine.js** — always add `x-transition` (or duration/opacity variants) to elements that show/hide (`x-show`), avoiding sudden pop-ins without transitions.
+- Micro-interactions must feel alive: interactive elements (`button`, `a`, `[role="button"]`) automatically inherit `transition-colors`/`transform` from `app.css` — leverage them (`hover:`, `active:scale-95`, etc.), and do not override them to be instantaneous without good reason.
+- No React, Vue, Flux UI, shadcn, MUI, or other JS frameworks/component libraries besides daisyUI.
+- No CDN Tailwind in production — use Vite build.
+- **Prohibited**: generic decorative icons that have no functional meaning (AI slop icons).
+- Icons: use minimal inline SVG or Heroicons — only icons that carry functional meaning.
 
 ### Layout Structure
 
 ```
 resources/views/
   layouts/
-    public.blade.php     # Landing page - navbar minimal, no auth
+    public.blade.php     # Landing page - minimal navbar, no auth
     auth.blade.php       # Login/register - centered card, no sidebar
     dashboard.blade.php  # Superadmin dashboard - sidebar + topbar
     account.blade.php    # My Account - tab navigation
-  components/            # Blade components untuk elemen reusable
+  components/            # Blade components for reusable elements
 ```
 
 ---
 
 ## Do Not
 
-- Jangan taruh logic di Controller - gunakan Service atau Action
-- Jangan buat frontend SPA terpisah
-- Jangan modifikasi Passport core (`vendor/`) - extend via config atau subclass
-- Jangan simpan secret/token di log atau response body yang tidak perlu
-- Jangan skip PKCE validation
-- Jangan override `/oauth/*` routes kecuali benar-benar diperlukan
-- Jangan pakai icon dekoratif tanpa makna fungsional (AI slop)
-- Jangan import component library UI selain daisyUI (Flux, shadcn, MUI, dll.) - Tailwind + daisyUI saja
-- Jangan pakai inline styles
+- Do not put logic in Controllers — use Services or Actions
+- Do not build a separate SPA frontend
+- Do not modify Passport core (`vendor/`) — extend via config or subclasses
+- Do not store secrets or tokens in logs or unneeded response bodies
+- Do not skip PKCE validation
+- Do not override `/oauth/*` routes unless strictly necessary
+- Do not use decorative icons without functional meaning (AI slop)
+- Do not import UI component libraries other than daisyUI (Flux, shadcn, MUI, etc.) — Tailwind + daisyUI only
+- Do not use inline styles
 
 ---
 
 ## Deployment
 
-- First deploy: `make deploy` → `sudo bash scripts/deploy.sh`
+- Initial deploy: `make deploy` → `sudo bash scripts/deploy.sh`
 - Updates: `make update` → `bash scripts/update.sh`
-- Tidak ada CI/CD - manual deploy via SSH ke server
+- No CI/CD — manual deployment via SSH to server
 
 ---
 

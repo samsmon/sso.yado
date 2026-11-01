@@ -23,7 +23,7 @@ class VerificationController extends Controller
     {
         $request->fulfill();
 
-        $this->auditLog->record('auth.email_verified', 'Email berhasil diverifikasi', $request->user());
+        $this->auditLog->record('auth.email_verified', 'Email verified successfully', $request->user());
 
         return redirect()->route('account.show')->with('success', __('auth.email_verified'));
     }

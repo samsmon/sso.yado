@@ -29,7 +29,7 @@ class ApplicationService
 
         $client->forceFill(['secret_encrypted' => $client->plainSecret])->save();
 
-        $this->auditLog->record('dashboard.application_created', "Aplikasi \"{$data['name']}\" dibuat");
+        $this->auditLog->record('dashboard.application_created', "Application \"{$data['name']}\" created");
 
         return $client;
     }
@@ -38,7 +38,7 @@ class ApplicationService
     {
         $this->clients->update($client, $data['name'], [$data['redirect_uri']]);
 
-        $this->auditLog->record('dashboard.application_updated', "Aplikasi \"{$data['name']}\" diperbarui");
+        $this->auditLog->record('dashboard.application_updated', "Application \"{$data['name']}\" updated");
     }
 
     public function delete(Client $client): void
@@ -54,6 +54,6 @@ class ApplicationService
         // it does not remove the row - delete it directly so it stops showing up.
         $client->delete();
 
-        $this->auditLog->record('dashboard.application_deleted', "Aplikasi \"{$name}\" dihapus");
+        $this->auditLog->record('dashboard.application_deleted', "Application \"{$name}\" deleted");
     }
 }

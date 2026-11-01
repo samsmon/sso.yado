@@ -23,7 +23,7 @@
             const res = await fetch(`/dashboard/applications/${client.id}/secret`, {
                 headers: { 'Accept': 'application/json' }
             });
-            if (!res.ok) throw new Error('Gagal mengambil secret.');
+            if (!res.ok) throw new Error('Failed to fetch the secret.');
             const data = await res.json();
             revealedSecret = data.secret;
         } catch (err) {
@@ -88,8 +88,8 @@
             {#if newSecret}
                 <div class="card bg-warning/10 border border-warning/30 shadow-sm p-6 rounded-2xl">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="badge badge-warning text-xs font-semibold">Simpan Sekarang</span>
-                        <p class="text-xs font-semibold text-warning">Client Secret ini hanya ditampilkan satu kali!</p>
+                        <span class="badge badge-warning text-xs font-semibold">Save Now</span>
+                        <p class="text-xs font-semibold text-warning">This Client Secret is only shown once!</p>
                     </div>
 
                     <!-- Client ID -->

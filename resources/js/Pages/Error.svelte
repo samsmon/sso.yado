@@ -10,35 +10,35 @@
     const messages = {
         403: {
             title: 'No Permission',
-            body: 'Kamu tidak punya akses ke halaman ini.',
+            body: 'You do not have access to this page.',
         },
         404: {
             title: 'Not Found',
-            body: 'Halaman yang kamu cari tidak ditemukan.',
+            body: 'The page you are looking for was not found.',
         },
         405: {
             title: 'Method Not Allowed',
-            body: 'Permintaan ini tidak didukung oleh server.',
+            body: 'This request is not supported by the server.',
         },
         419: {
             title: 'Session Expired',
-            body: 'Sesi kamu sudah kedaluwarsa, silakan muat ulang halaman.',
+            body: 'Your session has expired, please reload the page.',
         },
         429: {
             title: 'Too Many Requests',
-            body: 'Terlalu banyak permintaan, coba lagi sebentar lagi.',
+            body: 'Too many requests, please try again shortly.',
         },
         500: {
             title: 'Server Error',
-            body: 'Terjadi kesalahan pada server. Coba lagi nanti.',
+            body: 'A server error occurred. Please try again later.',
         },
         503: {
             title: 'Unavailable',
-            body: 'Layanan sedang dalam pemeliharaan. Coba lagi nanti.',
+            body: 'The service is under maintenance. Please try again later.',
         },
     };
 
-    $: message = messages[status] || { title: 'Error', body: 'Terjadi kesalahan yang tidak terduga.' };
+    $: message = messages[status] || { title: 'Error', body: 'An unexpected error occurred.' };
     $: user = $page.props.auth?.user;
     $: homeHref = user ? (user.role?.slug === 'superadmin' ? '/dashboard' : '/account') : '/';
 
@@ -66,7 +66,7 @@
         <p class="text-base-content/60">{message.body}</p>
         <div class="pt-4">
             <Link href={homeHref} class="btn btn-neutral rounded-xl">
-                {user ? 'Kembali' : 'Ke Halaman Utama'}
+                {user ? 'Back' : 'Go to Home'}
             </Link>
         </div>
     </div>

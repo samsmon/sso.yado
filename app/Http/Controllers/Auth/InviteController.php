@@ -52,7 +52,7 @@ class InviteController extends Controller
         ]);
 
         $invitation->update(['used_at' => now()]);
-        $this->auditLog->record('dashboard.invite_accepted', 'Undangan diterima, akun dibuat', $user);
+        $this->auditLog->record('dashboard.invite_accepted', 'Invitation accepted, account created', $user);
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -78,17 +78,17 @@ class InviteController extends Controller
     private function tokenError(string $token): string
     {
         if (empty($token)) {
-            return 'Link undangan tidak valid.';
+            return 'Invalid invitation link.';
         }
 
         $invitation = UserInvitation::where('token', $token)->first();
 
         if (! $invitation) {
-            return 'Link undangan tidak valid.';
+            return 'Invalid invitation link.';
         }
 
         if ($invitation->used_at) {
-            return 'Link undangan sudah pernah digunakan.';
+            return 'This invitation link has already been used.';
         }
 
         return 'Link undangan telah kedaluwarsa.';

@@ -24,9 +24,9 @@ use Illuminate\Support\Facades\Route;
 // Public - always accessible, navbar changes based on auth state
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Health check buat monitoring eksternal (landing page Yado) - publik, tanpa
-// auth, query DB minimal (SELECT 1) supaya responsnya cepat. Beda dari /up bawaan
-// Laravel: endpoint ini bentuk JSON-nya khusus buat dikonsumsi dashboard monitoring.
+// Health check for external monitoring (the Yado landing page) - public, without
+// auth, minimal DB query (SELECT 1) so the response is fast. Unlike the built-in /up of
+// Laravel: this endpoint's JSON shape is made specifically for the monitoring dashboard.
 Route::get('/health', [HealthController::class, 'check'])->name('health')->middleware('throttle:60,1');
 
 // Guest-only
@@ -46,26 +46,26 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.update')->middleware('throttle:10,1');
 });
 
-// Two-factor challenge - user sudah lolos password tapi belum lolos TOTP, jadi bukan guest
-// dan bukan authenticated penuh. Session key 'mfa_pending_user_id' yang jadi penanda.
+// Two-factor challenge - the user has passed the password but not TOTP yet, so not a guest
+// and not fully authenticated either. The session key 'mfa_pending_user_id' is the marker.
 Route::middleware('throttle:5,1')->group(function () {
     Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
     Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
 });
 
-// Authenticated - throttle di-key per-user (bukan per-IP) karena semua route ini butuh login
+// Authenticated - throttle is keyed per-user (not per-IP) because all these routes need login
 Route::middleware(['auth', 'throttle:120,1'])->group(function () {
     Route::match(['get', 'post'], '/logout', [LogoutController::class, 'destroy'])->name('logout');
 
-    // Email verification - TIDAK di-gate dengan 'verified' karena ini justru rute untuk
-    // user yang belum verified supaya bisa verifikasi/minta kirim ulang.
+    // Email verification - NOT gated with 'verified' because these are precisely the routes for
+    // unverified users so they can verify/request a resend.
     Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
         ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
     Route::post('/email/verification-notification', [VerificationController::class, 'resend'])
         ->middleware('throttle:3,1')->name('verification.send');
 
-    // Semua route di bawah ini butuh email terverifikasi
+    // All routes below need a verified email
     Route::middleware('verified')->group(function () {
         // My Account
         Route::prefix('account')->name('account.')->group(function () {

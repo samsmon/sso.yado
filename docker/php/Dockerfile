@@ -30,28 +30,28 @@ RUN apk add --no-cache \
     && docker-php-ext-install pdo_pgsql pdo_mysql mbstring bcmath zip intl sodium opcache \
     && apk del $PHPIZE_DEPS \
     && rm -rf /var/cache/apk/*
-# pdo_mysql dipertahankan HANYA untuk `php artisan db:migrate-to-pgsql` (baca data lama
-# dari MySQL sekali saat pindah ke Postgres) - koneksi aktif aplikasi selalu pgsql.
+# pdo_mysql is kept ONLY for `php artisan db:migrate-to-pgsql` (to read old data
+# from MySQL once when moving to Postgres) - the application's active connection is always pgsql.
 
-# Mitigasi CVE-2026-115560 (RCE lewat session upload progress, belum ada patch resmi PHP).
-# Cabut setelah PHP merilis perbaikan.
+# Mitigation for CVE-2026-115560 (RCE via session upload progress, no official PHP patch yet).
+# Remove once PHP releases a fix.
 RUN echo 'session.upload_progress.enabled=0' > /usr/local/etc/php/conf.d/zz-upload-progress.ini
 
 WORKDIR /var/www/html
 
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
-# bootstrap/cache/*.php dari host bisa berisi daftar package versi dev (mis. laravel/pail)
-# yang tidak ikut ter-install di vendor --no-dev di atas - pakai yang di-regenerate ulang
-# oleh `composer dump-autoload` di stage vendor supaya konsisten dengan isi vendor/ final.
+# bootstrap/cache/*.php from the host may contain a list of dev-version packages (e.g. laravel/pail)
+# that are not installed in the vendor --no-dev above - use the one regenerated
+# by `composer dump-autoload` in the vendor stage so it stays consistent with the final vendor/ contents.
 COPY --from=vendor /app/bootstrap/cache ./bootstrap/cache
 COPY --from=assets /app/public/build ./public/build
 
-# public/ di-mount sebagai named volume saat runtime (dishare dengan container nginx -
-# nginx dan PHP-FPM harus melihat file yang sama persis di path yang sama). Volume
-# named tidak otomatis ter-refresh saat image di-rebuild, jadi simpan salinan hasil
-# build ini di public-src sebagai sumber sinkronisasi tiap container start
-# (lihat docker/php/entrypoint.sh).
+# public/ is mounted as a named volume at runtime (shared with the nginx container -
+# nginx and PHP-FPM must see exactly the same files at the same path). A named
+# volume is not refreshed automatically when the image is rebuilt, so keep a copy of this
+# build output in public-src as the sync source on every container start
+# (see docker/php/entrypoint.sh).
 RUN cp -r public public-src
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh

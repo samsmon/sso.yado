@@ -37,13 +37,13 @@ class AppServiceProvider extends ServiceProvider
 
         Passport::authorizationView('oauth.authorize');
 
-        // Rate limit semua endpoint /oauth/* (token exchange + authorize) per IP
-        // untuk cegah DDoS/brute-force ke OAuth flow.
+        // Rate limit all /oauth/* endpoints (token exchange + authorize) per IP
+        // to prevent DDoS/brute-force against the OAuth flow.
         RateLimiter::for('oauth', function ($request) {
             return Limit::perMinute(30)->by($request->ip());
         });
 
-        // Rate limit login per email + IP (10 percobaan per menit) agar typo wajar tidak langsung terblokir
+        // Rate limit login per email + IP (10 attempts per minute) so ordinary typos are not blocked right away
         RateLimiter::for('login', function ($request) {
             $email = (string) $request->input('email');
 

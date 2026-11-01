@@ -31,7 +31,7 @@
         const action = user.is_active ? 'deactivate' : 'activate';
         if (confirm(`Are you sure you want to ${action} user "${user.name}"?`)) {
             router.patch(`/dashboard/users/${user.id}/toggle-active`, {}, {
-                onError: (errors) => alert(Object.values(errors)[0] || 'Gagal mengubah status user.')
+                onError: (errors) => alert(Object.values(errors)[0] || 'Failed to change the user status.')
             });
         }
     }
@@ -41,7 +41,7 @@
         router.patch(`/dashboard/users/${user.id}/role`, {
             role_id: roleId
         }, {
-            onError: (errors) => alert(Object.values(errors)[0] || 'Gagal mengubah role user.')
+            onError: (errors) => alert(Object.values(errors)[0] || 'Failed to change the user role.')
         });
     }
 

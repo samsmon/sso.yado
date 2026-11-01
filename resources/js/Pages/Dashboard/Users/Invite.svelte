@@ -84,7 +84,7 @@
                             <p class="text-xs text-error mt-1">{$form.errors.role_id}</p>
                         {/if}
                         <p class="text-[11px] text-base-content/40 mt-1.5">
-                            Undangan akan berisi link unik yang mengizinkan penerima mendaftarkan akun.
+                            The invitation contains a unique link that lets the recipient register an account.
                         </p>
                     </div>
 

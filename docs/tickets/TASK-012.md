@@ -3,7 +3,7 @@
 Status: Done
 Priority: Medium
 Created: 2026-07-20 21:00
-Request: Tambahkan halaman active sessions di /account/sessions. User bisa lihat daftar session/token aktif (device, waktu login, last used) dan mencabut session dari device yang tidak dikenal. Ini memanfaatkan tabel oauth_access_tokens yang sudah ada dari Passport.
+Request: Add an active sessions page at `/account/sessions`. Users can view active sessions/tokens (device, login time, last used) and revoke sessions from unrecognized devices, utilizing Passport's existing `oauth_access_tokens` table.
 
 Depends on: TASK-011
 
@@ -11,25 +11,25 @@ Depends on: TASK-011
 
 ## DEV Response
 
-- [x] `GET /account/sessions` → `AccountController::sessions()` - query `$user->tokens()->where('revoked', false)->where('expires_at', '>', now()->toDateTimeString())->with('client')->orderByDesc('created_at')->get()` - `AccountController.php:49-54`
-- [x] `DELETE /account/sessions/{tokenId}` → `AccountController::revokeSession()` - delegate ke `RevokeSessionAction`
-- [x] `DELETE /account/sessions` (revoke all) → `AccountController::revokeAll()` - loop semua token aktif user, revoke masing-masing
-- [x] `RevokeSessionAction::execute()` - cek token milik user via `$user->tokens()->where('id', $tokenId)->first()` → abort(403) jika bukan milik user, lalu `$token->revoke()` + `$token->refreshToken?->update(['revoked' => true])` - `app/Actions/Account/RevokeSessionAction.php`
-- [x] `resources/views/account/sessions.blade.php` - empty state jika tidak ada token, list token dengan nama client (`client?->name ?? 'Unknown App'`), waktu dibuat, expiry, scopes badge, tombol Revoke per token + Revoke All di header
+- [x] `GET /account/sessions` -> `AccountController::sessions()` - queries `$user->tokens()->where('revoked', false)->where('expires_at', '>', now()->toDateTimeString())->with('client')->orderByDesc('created_at')->get()` - `AccountController.php:49-54`
+- [x] `DELETE /account/sessions/{tokenId}` -> `AccountController::revokeSession()` - delegates to `RevokeSessionAction`
+- [x] `DELETE /account/sessions` (revoke all) -> `AccountController::revokeAll()` - loops over user active tokens, revoking each
+- [x] `RevokeSessionAction::execute()` - verifies token belongs to user via `$user->tokens()->where('id', $tokenId)->first()` -> abort(403) if not owned, then `$token->revoke()` + `$token->refreshToken?->update(['revoked' => true])` - `app/Actions/Account/RevokeSessionAction.php`
+- [x] `resources/views/account/sessions.blade.php` - empty state when no tokens exist, token list with client name (`client?->name ?? 'Unknown App'`), created time, expiry, scope badges, per-token Revoke button + Revoke All in header
 
 ---
 
 ## QA Response
 
-> **Method**: Static code review. DEV Response belum di-update (checklist `[ ]`), tapi implementasi sudah ada.
+> **Method**: Static code review.
 
-- [x] GET `/account/sessions` → query `tokens()->where('revoked', false)->where('expires_at', '>', now())` - hanya token aktif yang tampil ✓ (`AccountController:49-54`)
-- [x] Token expired atau revoked tidak tampil - filter di query ✓
-- [x] Cabut session → `RevokeSessionAction::execute()` memanggil `$token->revoke()` + `refreshToken?->update(['revoked' => true])` ✓
-- [x] Token milik user lain ditolak - `$user->tokens()->where('id', $tokenId)->first()` → abort(403) jika null ✓ (`RevokeSessionAction:13-16`)
-- [x] "Cabut Semua" → `revokeAll()` revoke semua OAuth token; web session (cookie) tidak tersentuh ✓
-- [x] Route dalam `auth` middleware group ✓
-- [x] `refreshToken` (singular, hasOne) - Passport 13 compatible ✓
-- [x] View `account/sessions.blade.php` exists ✓
+- [x] GET `/account/sessions` -> queries `tokens()->where('revoked', false)->where('expires_at', '>', now())` - only active tokens displayed (`AccountController:49-54`)
+- [x] Expired or revoked tokens do not appear - filtered by query
+- [x] Revoke session -> `RevokeSessionAction::execute()` calls `$token->revoke()` + `refreshToken?->update(['revoked' => true])`
+- [x] Tokens belonging to other users rejected - `$user->tokens()->where('id', $tokenId)->first()` -> abort(403) if null (`RevokeSessionAction:13-16`)
+- [x] "Revoke All" -> `revokeAll()` revokes all OAuth tokens; web session cookies untouched
+- [x] Route inside `auth` middleware group
+- [x] `refreshToken` (singular, hasOne) - Passport 13 compatible
+- [x] View `account/sessions.blade.php` exists
 
 **Status: Done**

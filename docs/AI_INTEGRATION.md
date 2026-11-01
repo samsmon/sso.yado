@@ -1,65 +1,65 @@
 # SSO Integration Brief - yado.my.id
 
-> Gunakan file ini sebagai context untuk AI: *"Integrasikan SSO Yado.my.id ke project ini menggunakan panduan berikut."*
+> Use this file as context for the AI: *"Integrate Yado.my.id SSO into this project using the following guide."*
 
 ---
 
-## Konteks
+## Context
 
-`sso.yado.my.id` adalah Central Identity Provider untuk ekosistem Yado.my.id.
-Protokol: **OAuth2 Authorization Code + PKCE** (wajib, tidak ada fallback).
-Semua aplikasi dalam ekosistem mendelegasikan auth ke sini - tidak perlu bikin login sendiri.
+`sso.yado.my.id` is the Central Identity Provider for the Yado.my.id ecosystem.
+Protocol: **OAuth2 Authorization Code + PKCE** (mandatory, no fallback).
+All apps in the ecosystem delegate auth here - there is no need to build your own login.
 
 ---
 
-## Prasyarat
+## Prerequisites
 
-Superadmin sudah mendaftarkan app ini di `sso.yado.my.id/dashboard/applications` dan memberikan:
+A superadmin has registered this app at `sso.yado.my.id/dashboard/applications` and provided:
 
 ```env
 SSO_CLIENT_ID=<uuid>
 SSO_CLIENT_SECRET=<secret>
-SSO_REDIRECT_URI=https://<domain-app-ini>/auth/callback
+SSO_REDIRECT_URI=https://<this-app-domain>/auth/callback
 SSO_BASE_URL=https://sso.yado.my.id
 ```
 
-Tambahkan 4 variabel ini ke `.env` app.
+Add these 4 variables to the app's `.env`.
 
 ---
 
-## Yang Harus Diimplementasikan
+## What Must Be Implemented
 
-### 1. Tabel users lokal
+### 1. Local users table
 
-App membutuhkan tabel `users` lokal dengan kolom dari SSO. **Tidak perlu kolom password** - auth dihandle SSO.
+The app needs a local `users` table with the columns from SSO. **No password column is needed** - auth is handled by SSO.
 
 ```
-sso_id          string unique   # primary key dari SSO, gunakan ini sebagai foreign key
+sso_id          string unique   # primary key from SSO, use this as the foreign key
 name            string
 username        string
 email           string unique
 avatar          string nullable
-role            string          # "user" atau "superadmin"
+role            string          # "user" or "superadmin"
 created_at
 updated_at
 ```
 
-Jika tabel `users` sudah ada dengan kolom `password`, tambahkan `sso_id` sebagai kolom baru (nullable dulu, lalu migrate data jika perlu).
+If a `users` table already exists with a `password` column, add `sso_id` as a new column (nullable first, then migrate the data if needed).
 
-### 2. Dua route auth
+### 2. Two auth routes
 
 ```
-GET /auth/redirect   → mulai OAuth flow (generate PKCE, redirect ke SSO)
-GET /auth/callback   → terima code dari SSO, tukar token, fetch profil, login user
+GET /auth/redirect   → start the OAuth flow (generate PKCE, redirect to SSO)
+GET /auth/callback   → receive the code from SSO, exchange the token, fetch the profile, log the user in
 ```
 
-### 3. Middleware proteksi
+### 3. Protection middleware
 
-Semua route yang butuh login → redirect ke `/auth/redirect` jika belum ada session.
+Every route that requires login → redirect to `/auth/redirect` if there is no session yet.
 
 ---
 
-## Implementasi Lengkap (Laravel)
+## Full Implementation (Laravel)
 
 ### Migration
 
@@ -69,7 +69,7 @@ Schema::table('users', function (Blueprint $table) {
     $table->string('username')->after('name');
     $table->string('avatar')->nullable()->after('email');
     $table->string('role')->default('user')->after('avatar');
-    // Hapus $table->string('password') jika ada dan tidak dibutuhkan
+        // Remove $table->string('password') if it exists and is not needed
 });
 ```
 
@@ -176,16 +176,16 @@ return [
 Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
 
-// Proteksi semua route yang butuh login:
+// Protect every route that requires login:
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', ...);
-    // semua route lain
+        // all other routes
 });
 ```
 
-### Middleware redirect ke SSO (opsional - ganti default Laravel auth redirect)
+### Middleware redirect to SSO (optional - replaces Laravel's default auth redirect)
 
-Di `bootstrap/app.php` atau `AppServiceProvider`, arahkan unauthenticated redirect ke SSO:
+In `bootstrap/app.php` or `AppServiceProvider`, point unauthenticated redirects to SSO:
 
 ```php
 // bootstrap/app.php
@@ -198,12 +198,12 @@ Di `bootstrap/app.php` atau `AppServiceProvider`, arahkan unauthenticated redire
 
 ---
 
-## Refresh Token (opsional tapi direkomendasikan)
+## Refresh Token (optional but recommended)
 
-Access token expired setelah **60 menit**. Implementasi refresh agar session tidak putus:
+The access token expires after **60 minutes**. Implement refresh so the session does not drop:
 
 ```php
-// Cek dan refresh token jika expired (misalnya di middleware atau scheduled job)
+// Check and refresh the token if it has expired (e.g. in a middleware or scheduled job)
 $tokenResponse = Http::asForm()->post(config('sso.base_url') . '/oauth/token', [
     'grant_type'    => 'refresh_token',
     'refresh_token' => session('sso_refresh_token'),
@@ -217,14 +217,14 @@ session([
 ]);
 ```
 
-Refresh token berlaku **30 hari** dan single-use - selalu simpan token baru dari response.
+The refresh token is valid for **30 days** and is single-use - always store the new token from the response.
 
 ---
 
 ## Logout
 
-Logout **wajib dua tahap**: hapus session lokal, lalu redirect ke SSO logout.
-Jika tahap dua dilewati, SSO session masih aktif - klik login lagi akan auto-login tanpa minta password.
+Logout is **mandatory in two steps**: delete the local session, then redirect to SSO logout.
+If the second step is skipped, the SSO session stays active - clicking login again will auto-login without asking for a password.
 
 ```php
 public function logout(Request $request): RedirectResponse
@@ -233,55 +233,55 @@ public function logout(Request $request): RedirectResponse
     $request->session()->invalidate();
     $request->session()->regenerateToken();
 
-    // Wajib redirect ke SSO logout dengan redirect_uri supaya SSO session juga hancur.
-    // redirect_uri harus domain yang terdaftar di SSO sebagai redirect URI client ini.
+        // Must redirect to SSO logout with redirect_uri so the SSO session is destroyed too.
+        // redirect_uri must be a domain registered in SSO as this client's redirect URI.
     $redirectUri = urlencode(url('/'));
     return redirect(config('sso.base_url') . '/logout?redirect_uri=' . $redirectUri);
 }
 ```
 
-Route logout di client (pastikan POST atau GET keduanya support):
+Logout route on the client (make sure both POST and GET are supported):
 
 ```php
 Route::post('/auth/logout', [SsoController::class, 'logout'])->name('sso.logout');
-Route::get('/auth/logout', [SsoController::class, 'logout']);  // untuk redirect dari SSO
+Route::get('/auth/logout', [SsoController::class, 'logout']);  // for redirects from SSO
 ```
 
 ---
 
-## Data User yang Tersedia
+## Available User Data
 
-Setelah login, `Auth::user()` return model User lokal yang sudah di-sync dari SSO:
+After login, `Auth::user()` returns the local User model already synced from SSO:
 
 ```php
-Auth::user()->sso_id    // ID di SSO (gunakan ini jika perlu cross-reference)
+Auth::user()->sso_id    // ID at SSO (use it if you need cross-references)
 Auth::user()->name
 Auth::user()->username
 Auth::user()->email
-Auth::user()->avatar    // URL avatar atau null
+Auth::user()->avatar    // avatar URL or null
 Auth::user()->role      // "user" atau "superadmin"
 Auth::user()->theme     // "system" | "light" | "dark"
 Auth::user()->locale    // "id" | "en" | "ja"
 ```
 
-Data di-sync setiap kali user login. Untuk update profil, user harus ke `sso.yado.my.id/account`.
+Data is synced every time the user logs in. To update their profile, users must go to `sso.yado.my.id/account`.
 
 ---
 
-## Theme & Bahasa (Opsional, Cross-App)
+## Theme & Language (Optional, Cross-App)
 
-SSO menyimpan preferensi `theme` dan `locale` per user dan mengexpose-nya lewat `/api/user`. **SSO tidak bisa memaksa styling atau bahasa di app kamu** - itu domain terpisah. Yang SSO sediakan cuma sumber kebenaran (single source of truth) untuk preferensi user; app kamu yang menerapkannya sendiri.
+SSO stores the `theme` and `locale` preferences per user and exposes them via `/api/user`. **SSO cannot force styling or language in your app** - that is a separate domain. SSO only provides the single source of truth for user preferences; your app applies them itself.
 
-Kalau mau ikutan sinkron dengan preferensi yang user set di SSO:
+If you want to stay in sync with the preferences the user sets in SSO:
 
 ### Theme
 
 ```php
-// Simpan theme dari SSO API response ke session/DB saat callback()
+// Store the theme from the SSO API response in the session/DB during callback()
 session(['theme' => $profile['theme']]);
 ```
 
-Terapkan di layout kamu pakai strategi yang sama dengan SSO - dark mode berbasis class `.dark` di `<html>`, di-set lewat inline script sebelum CSS load (hindari FOUC):
+Apply it in your layout using the same strategy as SSO - class-based dark mode via `.dark` on `<html>`, set with an inline script before the CSS loads (avoids FOUC):
 
 ```html
 <script>
@@ -291,62 +291,62 @@ Terapkan di layout kamu pakai strategi yang sama dengan SSO - dark mode berbasis
 </script>
 ```
 
-### Bahasa
+### Language
 
-Laravel punya i18n bawaan (`__()`, file `lang/{locale}/*.php`). Baca `locale` dari SSO dan set via middleware:
+Laravel has built-in i18n (`__()`, `lang/{locale}/*.php` files). Read `locale` from SSO and set it via middleware:
 
 ```php
 App::setLocale($profile['locale'] ?? 'id');
 ```
 
-Kalau app kamu bukan Laravel, terapkan pola yang setara di framework kamu - intinya baca `theme`/`locale` dari `/api/user`, simpan lokal (session/DB), lalu terapkan di render.
+If your app is not Laravel, apply the equivalent pattern in your framework - the point is to read `theme`/`locale` from `/api/user`, store it locally (session/DB), then apply it at render time.
 
-> Sinkron ini best-effort, bukan realtime. Kalau user ganti bahasa di SSO setelah sesi login berjalan, app kamu baru dapat nilai baru di login berikutnya (kecuali kamu fetch ulang `/api/user` secara berkala).
-
----
-
-## Checklist Implementasi
-
-- [ ] Tambah 4 env var (`SSO_CLIENT_ID`, `SSO_CLIENT_SECRET`, `SSO_REDIRECT_URI`, `SSO_BASE_URL`)
-- [ ] Buat/update tabel `users` dengan kolom `sso_id`, `username`, `avatar`, `role`
-- [ ] Buat `config/sso.php`
-- [ ] Buat `SsoController` dengan method `redirect()` dan `callback()`
-- [ ] Daftarkan route `/auth/redirect` dan `/auth/callback`
-- [ ] Arahkan unauthenticated request ke `route('sso.redirect')` bukan ke `/login`
-- [ ] Test: akses halaman protected → redirect ke SSO → login → balik ke app → session aktif
-- [ ] Test: akses lagi setelah login SSO → silent (tidak perlu login ulang)
-- [ ] Test: logout → session lokal hancur + SSO session hancur → klik login lagi → muncul halaman login SSO (bukan auto-login)
+> This sync is best-effort, not realtime. If a user changes language in SSO after their login session has started, your app only gets the new value at the next login (unless you re-fetch `/api/user` periodically).
 
 ---
 
-## Testing Lokal (SSO + Client App di 1 Device)
+## Implementation Checklist
 
-- SSO dan client app **wajib port berbeda** (`php artisan serve --port=8000` untuk SSO, `--port=8001` untuk client)
-- `redirect_uri` yang didaftarkan di SSO harus persis sama termasuk port
-- `APP_URL` di masing-masing `.env` harus sesuai port masing-masing
-- `APP_NAME` di client app harus berbeda dari SSO - nama cookie session Laravel diturunkan dari `APP_NAME`, jika sama persis kedua app bisa saling override session cookie
-- `SESSION_DOMAIN` biarkan `null` di kedua app (default) - jangan di-set eksplisit ke `localhost`
-- Kalau app kamu jalan di **Docker container terpisah** dari SSO, `localhost` tidak bisa dipakai untuk request server-to-server (token exchange, fetch profil) - container tidak saling kenal lewat `localhost`. Split config jadi `base_url` (untuk redirect browser, tetap `localhost`) dan `internal_url` (untuk HTTP call server-to-server, pakai `host.docker.internal`). Detail lengkap + contoh kode: [`DOCKER.md`](DOCKER.md)
+- [ ] Add 4 env vars (`SSO_CLIENT_ID`, `SSO_CLIENT_SECRET`, `SSO_REDIRECT_URI`, `SSO_BASE_URL`)
+- [ ] Create/update the `users` table with the columns `sso_id`, `username`, `avatar`, `role`
+- [ ] Create `config/sso.php`
+- [ ] Create `SsoController` with the `redirect()` and `callback()` methods
+- [ ] Register the `/auth/redirect` and `/auth/callback` routes
+- [ ] Point unauthenticated requests to `route('sso.redirect')` instead of `/login`
+- [ ] Test: visit a protected page → redirect to SSO → log in → return to the app → session active
+- [ ] Test: visit again after SSO login → silent (no new login needed)
+- [ ] Test: logout → local session destroyed + SSO session destroyed → click login again → the SSO login page appears (not auto-login)
 
 ---
 
-## Error Umum
+## Local Testing (SSO + Client App on 1 Device)
 
-| Error | Penyebab | Fix |
+- SSO and the client app **must use different ports** (`php artisan serve --port=8000` for SSO, `--port=8001` for the client)
+- The `redirect_uri` registered in SSO must match exactly, including the port
+- `APP_URL` in each `.env` must match each app's own port
+- `APP_NAME` in the client app must differ from SSO - Laravel's session cookie name is derived from `APP_NAME`, and if both are identical the two apps can override each other's session cookie
+- Leave `SESSION_DOMAIN` as `null` in both apps (the default) - do not set it explicitly to `localhost`
+- If your app runs in a **Docker container separate** from SSO, `localhost` cannot be used for server-to-server requests (token exchange, profile fetch) - containers do not know each other via `localhost`. Split the config into `base_url` (for browser redirects, stays `localhost`) and `internal_url` (for server-to-server HTTP calls, using `host.docker.internal`). Full details + code example: [`DOCKER.md`](DOCKER.md)
+
+---
+
+## Common Errors
+
+| Error | Cause | Fix |
 |-------|----------|-----|
-| `invalid_client` | `client_id` atau `client_secret` salah | Cek `.env` |
-| `invalid_grant` | `code_verifier` tidak cocok atau code sudah dipakai | Pastikan `code_verifier` disimpan di server-side session |
-| 403 Invalid state | `state` di callback tidak cocok session | Jangan simpan `state` di cookie/localStorage |
-| `invalid_request` | `code_challenge` tidak ada | PKCE wajib - pastikan `redirect()` generate dan kirim `code_challenge` |
-| Token expired (401) | Access token > 60 menit | Implementasi refresh token flow |
-| Auto-login setelah logout | SSO session tidak dihancurkan | Pastikan logout redirect ke `/logout?redirect_uri=...` bukan hanya clear session lokal |
-| GET method not allowed (logout) | Client punya route logout POST-only tapi di-hit via GET redirect | Tambah `Route::get('/auth/logout', ...)` di client |
-| Tidak bisa integrasi di 1 device (local) | Port bentrok, `redirect_uri` tidak match port, atau `APP_NAME` sama di kedua app (cookie collision) | Lihat section "Testing Lokal" di atas - pastikan port, `redirect_uri`, dan `APP_NAME` berbeda |
+| `invalid_client` | Wrong `client_id` or `client_secret` | Check `.env` |
+| `invalid_grant` | `code_verifier` does not match or the code was already used | Make sure `code_verifier` is stored in the server-side session |
+| 403 Invalid state | `state` in the callback does not match the session | Do not store `state` in a cookie/localStorage |
+| `invalid_request` | `code_challenge` is missing | PKCE is mandatory - make sure `redirect()` generates and sends `code_challenge` |
+| Token expired (401) | Access token older than 60 minutes | Implement the refresh token flow |
+| Auto-login after logout | The SSO session was not destroyed | Make sure logout redirects to `/logout?redirect_uri=...` and does not only clear the local session |
+| GET method not allowed (logout) | The client has a POST-only logout route but is hit via a GET redirect | Add `Route::get('/auth/logout', ...)` on the client |
+| Cannot integrate on 1 device (local) | Port collision, `redirect_uri` does not match the port, or `APP_NAME` is the same in both apps (cookie collision) | See the "Local Testing" section above - make sure the ports, `redirect_uri`, and `APP_NAME` differ |
 
 ---
 
-## Referensi
+## References
 
-- API Contract lengkap: `docs/SRS.md`
-- Panduan manual (untuk manusia): `docs/INTEGRATION.md`
+- Full API contract: `docs/SRS.md`
+- Manual guide (for humans): `docs/INTEGRATION.md`
 - SSO Engine repo: `sso.yado.my.id`

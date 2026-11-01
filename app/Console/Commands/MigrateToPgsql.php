@@ -10,10 +10,10 @@ class MigrateToPgsql extends Command
 {
     protected $signature = 'db:migrate-to-pgsql {--force : Lewati konfirmasi}';
 
-    protected $description = 'Salin seluruh data dari koneksi MySQL lama (MYSQL_LEGACY_*) ke koneksi Postgres aktif (pgsql)';
+    protected $description = 'Copy all data from the old MySQL connection (MYSQL_LEGACY_*) to the active Postgres connection (pgsql)';
 
     /**
-     * Urutan wajib FK-safe: parent sebelum child.
+     * Order must be FK-safe: parent before child.
      */
     private const TABLES = [
         'roles',
@@ -31,7 +31,7 @@ class MigrateToPgsql extends Command
     ];
 
     /**
-     * Kolom boolean per tabel - MySQL PDO mengembalikan "0"/"1" string, kolom
+     * Boolean columns per table - MySQL PDO returns "0"/"1" strings, and the column
      * boolean Postgres butuh true/false asli.
      */
     private const BOOLEAN_COLUMNS = [
@@ -44,22 +44,22 @@ class MigrateToPgsql extends Command
     ];
 
     /**
-     * Tabel dengan PK integer auto-increment yang sequence-nya perlu di-reset
-     * setelah bulk insert (id eksplisit dilewatkan, bukan lewat nextval).
+     * Tables with an auto-increment integer PK whose sequence needs to be reset
+     * after bulk insert (explicit ids are passed, not via nextval).
      */
     private const SERIAL_PK_TABLES = ['roles', 'users', 'user_invitations', 'settings', 'audit_logs'];
 
     public function handle(): int
     {
         if (config('database.default') !== 'pgsql') {
-            $this->error('DB_CONNECTION aktif bukan pgsql. Set DB_CONNECTION=pgsql di .env dulu sebelum migrasi.');
+            $this->error('The active DB_CONNECTION is not pgsql. Set DB_CONNECTION=pgsql in .env before migrating.');
             return self::FAILURE;
         }
 
         try {
             DB::connection('mysql')->getPdo();
         } catch (\Throwable $e) {
-            $this->error('Tidak bisa konek ke koneksi mysql (legacy). Cek MYSQL_LEGACY_* di .env: '.$e->getMessage());
+            $this->error('Cannot connect to the mysql (legacy) connection. Check MYSQL_LEGACY_* in .env: '.$e->getMessage());
             return self::FAILURE;
         }
 
@@ -70,9 +70,9 @@ class MigrateToPgsql extends Command
                 : 0;
         }
 
-        $this->table(['Tabel', 'Baris di MySQL lama'], collect($counts)->map(fn ($n, $t) => [$t, $n])->values());
+        $this->table(['Table', 'Rows in old MySQL'], collect($counts)->map(fn ($n, $t) => [$t, $n])->values());
 
-        if (!$this->option('force') && !$this->confirm('Lanjutkan? Ini akan MENGHAPUS ISI tabel di atas pada database Postgres tujuan lalu menggantinya dengan data dari MySQL.')) {
+        if (!$this->option('force') && !$this->confirm('Continue? This will DELETE THE CONTENTS of the tables above in the target Postgres database and replace them with data from MySQL.')) {
             $this->warn('Dibatalkan.');
             return self::SUCCESS;
         }
@@ -83,7 +83,7 @@ class MigrateToPgsql extends Command
 
         foreach (self::TABLES as $table) {
             if ($counts[$table] === 0) {
-                $this->line("- {$table}: kosong, dilewati.");
+                $this->line("- {$table}: empty, skipped.");
                 continue;
             }
 
@@ -107,7 +107,7 @@ class MigrateToPgsql extends Command
                 $migrated += count($prepared);
             });
 
-            $this->line("- {$table}: {$migrated} baris dipindahkan.");
+            $this->line("- {$table}: {$migrated} rows migrated.");
 
             if (in_array($table, self::SERIAL_PK_TABLES, true)) {
                 DB::connection('pgsql')->statement(
@@ -116,7 +116,7 @@ class MigrateToPgsql extends Command
             }
         }
 
-        $this->info('Migrasi selesai. Verifikasi jumlah baris dan coba login sebelum menghapus database MySQL lama.');
+        $this->info('Migration complete. Verify the row counts and try logging in before deleting the old MySQL database.');
 
         return self::SUCCESS;
     }
