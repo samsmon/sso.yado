@@ -48,15 +48,17 @@
 
         <div class="flex items-center gap-3 shrink-0">
             <ThemeToggle />
-            <Link
-                href={user?.role?.slug === 'superadmin' || user?.role_id === 1 ? '/dashboard' : '/'}
-                class="btn btn-ghost btn-xs rounded-lg gap-1.5 relative z-10"
-            >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Back to Dashboard
-            </Link>
+            {#if user?.role?.slug === 'superadmin'}
+                <Link
+                    href="/dashboard"
+                    class="btn btn-ghost btn-xs rounded-lg gap-1.5 relative z-10"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                    Back to Dashboard
+                </Link>
+            {/if}
             <Link href="/logout" method="post" as="button" class="btn btn-ghost btn-xs text-error hover:bg-error/10 rounded-lg relative z-10">
                 Sign Out
             </Link>
